@@ -15,19 +15,19 @@ def calculate(df):
         close = df.iloc[i, df.columns.get_loc('close')]
 
         if i > n:
-            rsv = 0
             if high != low:
                 rsv = (close - low) / (high - low) * 100
-            k = 2 / 3 * k_list[i - 1] + 1 / 3 * rsv
-            d = 2 / 3 * d_list[i - 1] + 1 / 3 * k
-            j = 3 * k - 2 * d
+                k = 2 / 3 * k_list[i - 1] + 1 / 3 * rsv
+                d = 2 / 3 * d_list[i - 1] + 1 / 3 * k
+                j = 3 * k - 2 * d
+            else:
+                k, d, j = 50, 50, 50
         k_list.append(k)
         d_list.append(d)
         j_list.append(j)
 
-    df['k9'] = pd.Series(k, index=df.index)
-    df['d9'] = pd.Series(d, index=df.index)
-    df['j9'] = pd.Series(j, index=df.index)
+    df['k9'] = pd.Series(k_list, index=df.index)
+    df['d9'] = pd.Series(d_list, index=df.index)
+    df['j9'] = pd.Series(j_list, index=df.index)
 
-    print(df[30:50])
     return df

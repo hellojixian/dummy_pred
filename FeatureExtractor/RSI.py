@@ -25,5 +25,4 @@ def calculate(df):
     for i in range(0, len(rsi_steps)):
         step = rsi_steps[i]
         df['rsi_' + str(step)] = pd.Series(rsi_matrix[i], index=df.index)
-    print(df[50:100])
     return df

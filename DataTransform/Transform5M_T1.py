@@ -2,7 +2,7 @@ import config, warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
-    CCI, PriceMA, VolMA, Turnover, RSI, KDJ
+    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -114,10 +114,17 @@ def feature_extraction(df):
     if 'k' not in df.columns:
         df = KDJ.calculate(df)
 
+    if 'bias_5' not in df.columns:
+        df = BIAS.calculate(df)
+
+    if 'boll_md' not in df.columns:
+        df = BOLL.calculate(df)
+
     if 'turnover' not in df.columns:
         df = Turnover.calculate(df, DAILY_DF)
 
     df = df.dropna(how='any')
+    print(df.head(10))
     return df
 
 
@@ -129,6 +136,8 @@ def feature_select(df):
              "cci_5", "cci_15", "cci_30",
              "rsi_6", "rsi_12", "rsi_24",
              "k9", "d9", "j9",
+             "bias_5", "bias_10", "bias_30",
+             "boll_up", "boll_md", "boll_dn",
              "change", "amplitude",
              "count", "turnover"]]
     return df
@@ -180,6 +189,8 @@ def feature_scaling(df):
     df[['d9']] *= rsi_scale_rate
     df[['j9']] *= rsi_scale_rate
 
+    df[['boll_up']] = (df[['boll_up']] - price_min) / (price_max - price_min)
+    df[['boll_dn']] = (df[['boll_dn']] - price_min) / (price_max - price_min)
     return df
 
 
