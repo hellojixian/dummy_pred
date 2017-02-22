@@ -4,7 +4,7 @@ import numpy as np
 def calculate(df):
     # calculate ma5, ma10, ma20, ma30
     # 计算成交量的N日均线
-    ma_steps = [5, 10, 20, 30]
+    ma_steps = [5, 15, 25, 40]
     ma_matrix = np.zeros((len(ma_steps), df.shape[0]), dtype=np.float32)
     idx_vol = df.columns.get_loc('vol')
     for i in range(0, df.shape[0]):

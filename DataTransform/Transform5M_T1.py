@@ -1,7 +1,8 @@
 import config, warnings, datetime
 import pandas as pd
 import numpy as np
-from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, CCI, PriceMA, VolMA, Turnover
+from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
+    CCI, PriceMA, VolMA, Turnover, RSI, KDJ
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -104,8 +105,14 @@ def feature_extraction(df):
     if 'amplitude' not in df.columns:
         df = PriceAmplitude.calculate(df)
 
-    if 'cci' not in df.columns:
+    if 'cci_5' not in df.columns:
         df = CCI.calculate(df)
+
+    if 'rsi_6' not in df.columns:
+        df = RSI.calculate(df)
+
+    if 'k' not in df.columns:
+        df = KDJ.calculate(df)
 
     if 'turnover' not in df.columns:
         df = Turnover.calculate(df, DAILY_DF)
@@ -117,8 +124,11 @@ def feature_extraction(df):
 def feature_select(df):
     df = df[["date",
              "open_change", "high_change", "low_change", "close_change",
-             "close", "ma5", "ma10", "ma20", "ma30",
-             "vol", "v_ma5", "v_ma10", "v_ma20", "v_ma30",
+             "close", "ma5", "ma15", "ma25", "ma40",
+             "vol", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
+             "cci_5", "cci_15", "cci_30",
+             "rsi_6", "rsi_12", "rsi_24",
+             "k9", "d9", "j9",
              "change", "amplitude",
              "count", "turnover"]]
     return df
@@ -131,6 +141,8 @@ def feature_scaling(df):
     # 换手率缩放比
     amplitude_scale_rate = 100
     vol_scale_rate = 0.001
+    cci_scale_rate = 0.01
+    rsi_scale_rate = 0.01
 
     price_min = np.ceil(PRICE_MIN * 0.7)
     price_max = np.ceil(PRICE_MAX * 1.3)
@@ -145,16 +157,28 @@ def feature_scaling(df):
 
     df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
     df[['ma5']] = (df[['ma5']] - price_min) / (price_max - price_min)
-    df[['ma10']] = (df[['ma10']] - price_min) / (price_max - price_min)
-    df[['ma20']] = (df[['ma20']] - price_min) / (price_max - price_min)
-    df[['ma30']] = (df[['ma30']] - price_min) / (price_max - price_min)
+    df[['ma15']] = (df[['ma15']] - price_min) / (price_max - price_min)
+    df[['ma25']] = (df[['ma25']] - price_min) / (price_max - price_min)
+    df[['ma40']] = (df[['ma40']] - price_min) / (price_max - price_min)
 
     df[['count']] *= vol_scale_rate
     df[['vol']] *= vol_scale_rate
     df[['v_ma5']] *= vol_scale_rate
-    df[['v_ma10']] *= vol_scale_rate
-    df[['v_ma20']] *= vol_scale_rate
-    df[['v_ma30']] *= vol_scale_rate
+    df[['v_ma15']] *= vol_scale_rate
+    df[['v_ma25']] *= vol_scale_rate
+    df[['v_ma40']] *= vol_scale_rate
+
+    df[['cci_5']] *= cci_scale_rate
+    df[['cci_15']] *= cci_scale_rate
+    df[['cci_30']] *= cci_scale_rate
+
+    df[['rsi_6']] *= rsi_scale_rate
+    df[['rsi_12']] *= rsi_scale_rate
+    df[['rsi_24']] *= rsi_scale_rate
+
+    df[['k9']] *= rsi_scale_rate
+    df[['d9']] *= rsi_scale_rate
+    df[['j9']] *= rsi_scale_rate
 
     return df
 

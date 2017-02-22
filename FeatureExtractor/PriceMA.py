@@ -4,7 +4,7 @@ import numpy as np
 def calculate(df):
     # 计算收盘价的N日均线
     # calculate ma5, ma10, ma20, ma30
-    ma_steps = [5, 10, 20, 30]
+    ma_steps = [5, 15, 25, 40]
     ma_matrix = np.zeros((len(ma_steps), df.shape[0]), dtype=np.float32)
     idx_close = df.columns.get_loc('close')
     for i in range(0, df.shape[0]):
