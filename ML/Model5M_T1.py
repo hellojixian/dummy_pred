@@ -38,13 +38,13 @@ class Model5MT1:
         name = os.path.join('Models', name)
         self._name = name
         self._model = Sequential([
-            Convolution2D(64, 5, 18, border_mode='same', input_shape=(1, 36, 18)),
+            Convolution2D(64, 5, 36, border_mode='same', input_shape=(1, 36, 36)),
             Activation('relu'),
             Dropout(0.5),
-            Convolution2D(32, 10, 18, border_mode='same'),
+            Convolution2D(32, 10, 36, border_mode='same'),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 20, 18, border_mode='same'),
+            Convolution2D(16, 20, 36, border_mode='same'),
             Activation('relu'),
             Dropout(0.25),
             Flatten(),

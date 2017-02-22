@@ -23,48 +23,48 @@ TEST_SAMPLES = 100
 m5m = Model5MT1(MODEL_NAME)
 
 # 训练模型 准备数据
-# X_list, y_list = [], []
-# for code in training_stock_codes:
-#     X, y = m5m.prepare_data(code, START_DATE, END_DATE, use_cache=True)
-#     X_list.append(X)
-#     y_list.append(y)
-#     print("\nStock code:", code)
-#     print("{0} Samples distributions: ".format(X.shape[0]))
-#     print(np.sum(y, axis=0))
-# training_set = (np.vstack(X_list), np.vstack(y_list))
-#
-# X_list, y_list = [], []
-# for code in validation_stock_codes:
-#     X, y = m5m.prepare_data(code, TESTING_START_DATE, END_DATE, use_cache=True)
-#     X_list.append(X)
-#     y_list.append(y)
-#     print("\nStock code:", code)
-#     print("{0} Samples distributions: ".format(X.shape[0]))
-#     print(np.sum(y, axis=0))
-# validation_set = (np.vstack(X_list), np.vstack(y_list))
-#
-# X_list, y_list = [], []
-# for code in test_stock_codes:
-#     X, y = m5m.prepare_data(code, TESTING_START_DATE, END_DATE, use_cache=True)
-#     X_list.append(X)
-#     y_list.append(y)
-#     print("\nStock code:", code)
-#     print("{0} Samples distributions: ".format(X.shape[0]))
-#     print(np.sum(y, axis=0))
-# test_set = (np.vstack(X_list), np.vstack(y_list))
-#
-# print("\nTraining set: \n"
-#       "Overall {0} Samples distributions: {1}".format(training_set[0].shape[0], np.sum(training_set[1], axis=0)))
-# print("\nValidation set: \n"
-#       "Overall {0} Samples distributions: {1}".format(validation_set[0].shape[0], np.sum(validation_set[1], axis=0)))
-# print("\nTesting set: \n"
-#       "Overall {0} Samples distributions: {1}".format(test_set[0].shape[0], np.sum(test_set[1], axis=0)))
-# print('\n\t')
-#
-# loss, accuracy = m5m.train(training_set, validation_set, test_set)
-# print('\ntest loss: ', loss)
-# print('test accuracy: ', accuracy)
-# exit(0)
+X_list, y_list = [], []
+for code in training_stock_codes:
+    X, y = m5m.prepare_data(code, START_DATE, END_DATE, use_cache=True)
+    X_list.append(X)
+    y_list.append(y)
+    print("\nStock code:", code)
+    print("{0} Samples distributions: ".format(X.shape[0]))
+    print(np.sum(y, axis=0))
+training_set = (np.vstack(X_list), np.vstack(y_list))
+
+X_list, y_list = [], []
+for code in validation_stock_codes:
+    X, y = m5m.prepare_data(code, TESTING_START_DATE, END_DATE, use_cache=True)
+    X_list.append(X)
+    y_list.append(y)
+    print("\nStock code:", code)
+    print("{0} Samples distributions: ".format(X.shape[0]))
+    print(np.sum(y, axis=0))
+validation_set = (np.vstack(X_list), np.vstack(y_list))
+
+X_list, y_list = [], []
+for code in test_stock_codes:
+    X, y = m5m.prepare_data(code, TESTING_START_DATE, END_DATE, use_cache=True)
+    X_list.append(X)
+    y_list.append(y)
+    print("\nStock code:", code)
+    print("{0} Samples distributions: ".format(X.shape[0]))
+    print(np.sum(y, axis=0))
+test_set = (np.vstack(X_list), np.vstack(y_list))
+
+print("\nTraining set: \n"
+      "Overall {0} Samples distributions: {1}".format(training_set[0].shape[0], np.sum(training_set[1], axis=0)))
+print("\nValidation set: \n"
+      "Overall {0} Samples distributions: {1}".format(validation_set[0].shape[0], np.sum(validation_set[1], axis=0)))
+print("\nTesting set: \n"
+      "Overall {0} Samples distributions: {1}".format(test_set[0].shape[0], np.sum(test_set[1], axis=0)))
+print('\n\t')
+
+loss, accuracy = m5m.train(training_set, validation_set, test_set)
+print('\ntest loss: ', loss)
+print('test accuracy: ', accuracy)
+exit(0)
 #
 # # 使用模型
 # stock_codes = ['sh600552',  'sh600313', 'sh600857',  'sh600128']

@@ -31,6 +31,6 @@ def calculate(df):
         dn_list.append(dn)
 
     df['boll_up'] = pd.Series(up_list, index=df.index)
-    df['boll_mb'] = pd.Series(mb_list, index=df.index)
+    df['boll_md'] = pd.Series(mb_list, index=df.index)
     df['boll_dn'] = pd.Series(dn_list, index=df.index)
     return df

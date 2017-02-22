@@ -2,7 +2,7 @@ import config, warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
-    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL
+    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, VR
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -120,11 +120,16 @@ def feature_extraction(df):
     if 'boll_md' not in df.columns:
         df = BOLL.calculate(df)
 
+    if 'roc_12' not in df.columns:
+        df = ROC.calculate(df)
+
+    if 'vr' not in df.columns:
+        df = VR.calculate(df)
+
     if 'turnover' not in df.columns:
         df = Turnover.calculate(df, DAILY_DF)
 
     df = df.dropna(how='any')
-    print(df.head(10))
     return df
 
 
@@ -132,12 +137,13 @@ def feature_select(df):
     df = df[["date",
              "open_change", "high_change", "low_change", "close_change",
              "close", "ma5", "ma15", "ma25", "ma40",
-             "vol", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
+             "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
              "cci_5", "cci_15", "cci_30",
              "rsi_6", "rsi_12", "rsi_24",
              "k9", "d9", "j9",
              "bias_5", "bias_10", "bias_30",
              "boll_up", "boll_md", "boll_dn",
+             "roc_12", "roc_25",
              "change", "amplitude",
              "count", "turnover"]]
     return df
@@ -163,6 +169,8 @@ def feature_scaling(df):
     df[['change']] *= amplitude_scale_rate
     df[['amplitude']] *= amplitude_scale_rate
     df[['turnover']] *= amplitude_scale_rate
+    df[['roc_12']] *= amplitude_scale_rate
+    df[['roc_25']] *= amplitude_scale_rate
 
     df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
     df[['ma5']] = (df[['ma5']] - price_min) / (price_max - price_min)
@@ -191,6 +199,9 @@ def feature_scaling(df):
 
     df[['boll_up']] = (df[['boll_up']] - price_min) / (price_max - price_min)
     df[['boll_dn']] = (df[['boll_dn']] - price_min) / (price_max - price_min)
+
+    # print(df.head(10))
+    # print(df.shape)
     return df
 
 
