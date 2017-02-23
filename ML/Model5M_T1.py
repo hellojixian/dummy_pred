@@ -19,7 +19,7 @@
 '''
 
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D
+from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization
 from keras.optimizers import SGD, RMSprop
 from keras.callbacks import EarlyStopping
 from keras.models import load_model
@@ -37,28 +37,38 @@ class Model5MT1:
     def __init__(self, name):
         name = os.path.join('Models', name)
         self._name = name
+
         self._model = Sequential([
-            Convolution2D(64, 5, 36, border_mode='same', input_shape=(1, 36, 36)),
-            Activation('relu'),
-            Dropout(0.5),
-            Convolution2D(32, 10, 36, border_mode='same'),
-            Activation('relu'),
+            Convolution2D(16, 15, 36, border_mode='same', input_shape=(1, 36, 36), dim_ordering ='th'),
+            Activation('tanh'),
+            # Dropout(0.5),
+            # Convolution2D(32, 10, 36, border_mode='same'),
+            # Activation('tanh'),
+            # Dropout(0.25),
+            Convolution2D(32, 10, 8, border_mode='same'),
+            Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(16, 20, 36, border_mode='same'),
-            Activation('relu'),
+            Convolution2D(32, 5, 10, border_mode='same'),
+            Activation('tanh'),
             Dropout(0.25),
             Flatten(),
             Dense(1024),
+            BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
             Dense(512),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Dense(256),
-            Activation('relu'),
-            Dense(64),
-            Activation('relu'),
+            # Dense(256),
+            # BatchNormalization(),
+            # Activation('relu'),
+            # Dense(64),
+            # BatchNormalization(),
+            # Activation('relu'),
+            # BatchNormalization(),
             Dense(32),
+            # BatchNormalization(),
             Activation('relu'),
             Dense(3),
             Activation('softmax'),
@@ -108,7 +118,10 @@ class Model5MT1:
         X_train = X_train.reshape(X_train.shape[0], 1, X_train.shape[1], X_train.shape[2])
         X_validation = X_validation.reshape(X_validation.shape[0], 1, X_validation.shape[1], X_validation.shape[2])
         X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1], X_test.shape[2])
-        # X_test = X_test.reshape(X_test.shape[0],1, -1)
+
+        # X_train = X_train.reshape(X_train.shape[0], -1)
+        # X_validation = X_validation.reshape(X_validation.shape[0], -1)
+        # X_test = X_test.reshape(X_test.shape[0], -1)
 
         callbacks = [
             # EarlyStopping(monitor='val_acc', min_delta=0.05, patience=3, verbose=1, mode='max')
@@ -120,7 +133,7 @@ class Model5MT1:
         # Another way to train the model
         retry = 0
         # while accuracy <= 0.98:
-        while loss >= 0.02:
+        while loss >= 0.0001: # 0.02:
             self._model.fit(X_train, y_train,
                             nb_epoch=2,
                             batch_size=100,
