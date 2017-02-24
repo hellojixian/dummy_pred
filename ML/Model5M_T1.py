@@ -19,7 +19,7 @@
 '''
 
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization
+from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization, Merge
 from keras.optimizers import SGD, RMSprop
 from keras.callbacks import EarlyStopping
 from keras.models import load_model
@@ -38,61 +38,107 @@ class Model5MT1:
         name = os.path.join('Models', name)
         self._name = name
 
-        self._model = Sequential([
-            Convolution2D(16, 15, 36, border_mode='same', input_shape=(1, 36, 36), dim_ordering ='th'),
-            Activation('tanh'),
-            # Dropout(0.5),
-            # Convolution2D(32, 10, 36, border_mode='same'),
-            # Activation('tanh'),
-            # Dropout(0.25),
-            Convolution2D(32, 10, 8, border_mode='same'),
+        change_dim = 6
+        price_dim = 7
+        vol_dim = 8
+        index_dim = 14
+
+        change_model = Sequential([
+            Convolution2D(88, 5, change_dim, border_mode='valid', input_shape=(1, 36, change_dim), dim_ordering='th'),
+            BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(32, 5, 10, border_mode='same'),
+            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('tanh'),
+            Dropout(0.25),
+            Convolution2D(16, 1, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
             Flatten(),
-            Dense(1024),
+        ])
+
+        price_model = Sequential([
+            Convolution2D(88, 5, price_dim, border_mode='valid', input_shape=(1, 36, price_dim), dim_ordering='th'),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Dense(512),
-            # BatchNormalization(),
+            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            # Dense(256),
-            # BatchNormalization(),
-            # Activation('relu'),
-            # Dense(64),
-            # BatchNormalization(),
-            # Activation('relu'),
-            # BatchNormalization(),
+            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Flatten(),
+        ])
+
+        vol_model = Sequential([
+            Convolution2D(88, 5, vol_dim, border_mode='valid', input_shape=(1, 36, vol_dim), dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Flatten(),
+        ])
+
+        index_model = Sequential([
+            Convolution2D(128, 5, index_dim, border_mode='valid', input_shape=(1, 36, index_dim), dim_ordering='th'),
+            BatchNormalization(),
+            Activation('tanh'),
+            Dropout(0.25),
+            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Flatten()
+        ])
+
+
+        self._model = Sequential([
+            Merge([change_model, price_model, vol_model, index_model], mode='concat', concat_axis=-1),
+            Dense(3128),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.5),
+            Dense(1024),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.5),
+            Dense(512),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.25),
+            Dense(256),
+            Dropout(0.25),
+            BatchNormalization(),
+            Activation('relu'),
             Dense(32),
-            # BatchNormalization(),
+            BatchNormalization(),
             Activation('relu'),
             Dense(3),
             Activation('softmax'),
         ])
-        # self._model = Sequential([
-        #     Dense(2048, input_dim=648),
-        #     Activation('relu'),
-        #     # Dropout(0.25),
-        #     Dense(4096),
-        #     Dense(4096),
-        #     Activation('relu'),
-        #     # Dropout(0.25),
-        #     Dense(512),
-        #     Activation('relu'),
-        #     # Dropout(0.25),
-        #     Dense(256),
-        #     Activation('relu'),
-        #     Dense(64),
-        #     Activation('relu'),
-        #     Dense(32),
-        #     Activation('relu'),
-        #     Dense(3),
-        #     Activation('softmax'),
-        # ])
+
+        print("Network output layout")
+        for layer in self._model.layers:
+            print(layer.output_shape)
+        print("\n\n")
+        # exit(0)
+
         try:
             self._model = load_model(name)
         except Exception:
@@ -106,8 +152,60 @@ class Model5MT1:
         self._model.compile(optimizer='adadelta',  # adadelta
                             loss='categorical_crossentropy',
                             metrics=['accuracy'])
-
         return
+
+
+    def _transform_inputs(self, input):
+        input = input.reshape(input.shape[0], 1, input.shape[1], input.shape[2])
+        # 0: "open_change"
+        # 1: "high_change",
+        # 2: "low_change",
+        # 3: "close_change",
+
+        # 4: "close",
+        # 5: "ma5",
+        # 6: "ma15",
+        # 7: "ma25",
+        # 8: "ma40",
+        #
+        # 9: "vol",
+        # 10:"vr",
+        # 11:"v_ma5",
+        # 12:"v_ma15",
+        # 13:"v_ma25",
+        # 14:"v_ma40",
+        #
+        # 15: "cci_5",
+        # 16: "cci_15",
+        # 17: "cci_30",
+        # 18: "rsi_6",
+        # 19: "rsi_12",
+        # 20: "rsi_24",
+        # 21: "k9",
+        # 22: "d9",
+        # 23: "j9",
+        # 24: "bias_5",
+        # 25: "bias_10",
+        # 26: "bias_30",
+        #
+        # 27: "boll_up",
+        # 28: "boll_md",
+        # 29: "boll_dn",
+        # 30: "roc_12",
+        # 31: "roc_25",
+        #
+        # 32: "change",
+        # 33: "amplitude",
+        # 34: "count",
+        # 35: "turnover"]]
+
+        change_in = input[:,:,:,[0,1,2,3,32,33]]
+        price_in = input[:,:,:,[4,5,6,7,8,27,29]]
+        vol_in = input[:, :, :, [9,10,11,12,13,14,34,35]]
+        index_in = input[:, :, :, [15,16,17,18,19,20,21,22,23,24,25,26,30,31]]
+
+        input = [change_in,price_in,vol_in, index_in]
+        return input
 
     def train(self, training_set, validation_set, test_set):
 
@@ -115,9 +213,9 @@ class Model5MT1:
         y_train, y_validation, y_test = training_set[1], validation_set[1], test_set[1]
 
         # extra data transformation for fit the model
-        X_train = X_train.reshape(X_train.shape[0], 1, X_train.shape[1], X_train.shape[2])
-        X_validation = X_validation.reshape(X_validation.shape[0], 1, X_validation.shape[1], X_validation.shape[2])
-        X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1], X_test.shape[2])
+        X_train = self._transform_inputs(X_train)
+        X_validation = self._transform_inputs(X_validation)
+        X_test = self._transform_inputs(X_test)
 
         # X_train = X_train.reshape(X_train.shape[0], -1)
         # X_validation = X_validation.reshape(X_validation.shape[0], -1)
@@ -133,7 +231,7 @@ class Model5MT1:
         # Another way to train the model
         retry = 0
         # while accuracy <= 0.98:
-        while loss >= 0.0001: # 0.02:
+        while loss >= 0.05:  # 0.02:
             self._model.fit(X_train, y_train,
                             nb_epoch=2,
                             batch_size=100,
@@ -155,7 +253,7 @@ class Model5MT1:
         return loss, accuracy
 
     def predict(self, X):
-        X = X.reshape(1, 1, X.shape[0], X.shape[1])
+        X = self._transform_inputs(X)
         cls = self._model.predict_classes(X, verbose=0)
         proba = self._model.predict_proba(X, verbose=0)
         proba *= 100
