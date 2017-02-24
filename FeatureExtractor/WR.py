@@ -26,7 +26,7 @@ def calculate(df):
             low_n = np.min(df.iloc[i - step:i, df.columns.get_loc('low')])
             p = high_n / low_n
             if p != 0:
-                wr_n = 100 * (high_n - close) / ( high_n - low_n )
+                wr_n = 100 * (high_n - close) / p
                 wr_matrix[j, i] = wr_n
 
     for i in range(0, len(wr_steps)):
