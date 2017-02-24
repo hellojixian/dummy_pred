@@ -130,7 +130,7 @@ def feature_extraction(df):
         df = Turnover.calculate(df, DAILY_DF)
 
     if 'wr' not in df.columns:
-        df = WR.calculate(df, DAILY_DF)
+        df = WR.calculate(df)
 
     df = df.dropna(how='any')
 
@@ -151,7 +151,7 @@ def feature_select(df):
              "roc_12", "roc_25",
              "change", "amplitude",
              "count", "turnover",
-             "wr_6", "wr_10", "wr_20"]]
+             "wr_5", "wr_10", "wr_20"]]
     return df
 
 
@@ -207,7 +207,7 @@ def feature_scaling(df):
     df[['boll_up']] = (df[['boll_up']] - price_min) / (price_max - price_min)
     df[['boll_dn']] = (df[['boll_dn']] - price_min) / (price_max - price_min)
 
-    df[['wr_6']] *= wr_scale_rate
+    df[['wr_5']] *= wr_scale_rate
     df[['wr_10']] *= wr_scale_rate
     df[['wr_20']] *= wr_scale_rate
 
