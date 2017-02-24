@@ -2,7 +2,7 @@ import config, warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
-    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, VR, WR
+    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, VR
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -129,12 +129,7 @@ def feature_extraction(df):
     if 'turnover' not in df.columns:
         df = Turnover.calculate(df, DAILY_DF)
 
-    if 'wr' not in df.columns:
-        df = WR.calculate(df, DAILY_DF)
-
     df = df.dropna(how='any')
-
-    print(df.head(5))
     return df
 
 
@@ -150,8 +145,7 @@ def feature_select(df):
              "boll_up", "boll_md", "boll_dn",
              "roc_12", "roc_25",
              "change", "amplitude",
-             "count", "turnover",
-             "wr_6", "wr_10", "wr_20"]]
+             "count", "turnover"]]
     return df
 
 
@@ -164,7 +158,6 @@ def feature_scaling(df):
     vol_scale_rate = 0.001
     cci_scale_rate = 0.01
     rsi_scale_rate = 0.01
-    wr_scale_rate = 0.01
 
     price_min = np.ceil(PRICE_MIN * 0.7)
     price_max = np.ceil(PRICE_MAX * 1.3)
@@ -207,10 +200,6 @@ def feature_scaling(df):
     df[['boll_up']] = (df[['boll_up']] - price_min) / (price_max - price_min)
     df[['boll_dn']] = (df[['boll_dn']] - price_min) / (price_max - price_min)
 
-    df[['wr_6']] *= wr_scale_rate
-    df[['wr_10']] *= wr_scale_rate
-    df[['wr_20']] *= wr_scale_rate
-
     # print(df.head(10))
     # print(df.shape)
     return df
@@ -241,7 +230,7 @@ def prepare_result(index, stock_code, startdate, enddate):
     session.configure(bind=config.DB_CONN)
     s = session()
 
-    sql = "SELECT `date`, `open`,`close` " \
+    sql = "SELECT `date`, `open`,`close`,`change` " \
           "FROM {0} " \
           "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' " \
           "ORDER BY `date` ASC".format(
@@ -249,7 +238,7 @@ def prepare_result(index, stock_code, startdate, enddate):
     rs = s.execute(sql)
 
     daily_df = pd.DataFrame(rs.fetchall())
-    daily_df.columns = ['date', 'open', 'close']
+    daily_df.columns = ['date', 'open', 'close', 'change']
     daily_df = daily_df.set_index(['date'], drop=True)
 
     result = []
@@ -258,18 +247,19 @@ def prepare_result(index, stock_code, startdate, enddate):
             date_index = date_index.date()
         except Exception:
             pass
-        open = daily_df.loc[date_index, 'open']
-        last_date_index = daily_df.index[daily_df.index.get_loc(date_index) - 1]
-        last_close = daily_df.loc[last_date_index, 'close']
-        change = (open - last_close) / last_close * 100
-        r = None
-        if change >= 0.5:
-            r = [0, 0, 1]  # 上涨
-        elif change <= -0.5:
-            r = [1, 0, 0]  # 下跌
-        else:
-            r = [0, 1, 0]  # 平
-        result.append(r)
+        change = daily_df.loc[date_index, 'change'] * 100
+        # open = daily_df.loc[date_index, 'open']
+        # last_date_index = daily_df.index[daily_df.index.get_loc(date_index) - 1]
+        # last_close = daily_df.loc[last_date_index, 'close']
+        # change = (open - last_close) / last_close * 100
+        # r = None
+        # if change >= 0.5:
+        #     r = [0, 0, 1]  # 上涨
+        # elif change <= -0.5:
+        #     r = [1, 0, 0]  # 下跌
+        # else:
+        #     r = [0, 1, 0]  # 平
+        result.append([change])
     result = np.asanyarray(result)
     s.close()
     return result

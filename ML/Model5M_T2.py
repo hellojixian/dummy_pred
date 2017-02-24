@@ -25,12 +25,12 @@ from keras.callbacks import EarlyStopping
 from keras.models import load_model
 
 from DataCache.CacheManager import CacheManager
-import DataTransform.Transform5M_T1 as t5m
+import DataTransform.Transform5M_T2 as t5m
 import numpy as np
 import os
 
 
-class Model5MT1:
+class Model5MT2:
     _name = None
     _model = None
 
@@ -173,27 +173,26 @@ class Model5MT1:
                    index_model, cci_model, rsi_model,
                    kdj_model, bias_model, boll_model], mode='concat',
                   concat_axis=-1),
-            Dense(4096),
-            BatchNormalization(),
-            Activation('relu'),
+            # Dense(4096),
+            # BatchNormalization(),
+            # Activation('linear'),
+            # Dropout(0.5),
+            Dense(1024,init='normal'),
+            # BatchNormalization(),
+            Activation('linear'),
             Dropout(0.5),
-            Dense(1024),
-            BatchNormalization(),
-            Activation('relu'),
-            Dropout(0.5),
-            Dense(512),
-            BatchNormalization(),
-            Activation('relu'),
+            Dense(512,init='normal'),
+            # BatchNormalization(),
+            Activation('linear'),
             Dropout(0.25),
-            Dense(256),
+            Dense(256,init='normal'),
             Dropout(0.25),
-            BatchNormalization(),
-            Activation('relu'),
-            Dense(32),
-            BatchNormalization(),
-            Activation('relu'),
-            Dense(3),
-            Activation('softmax'),
+            # BatchNormalization(),
+            Activation('linear'),
+            Dense(32,init='normal'),
+            # BatchNormalization(),
+            Activation('linear'),
+            Dense(1)
         ])
 
         print("Network output layout")
@@ -213,8 +212,8 @@ class Model5MT1:
         # We add metrics to get more results you want to see
         # sgd 曾经逼近到 89%
         self._model.compile(optimizer='adadelta',  # adadelta
-                            loss='categorical_crossentropy',
-                            metrics=['accuracy'])
+                            loss='mean_squared_error',
+                            metrics=['mean_absolute_error'])
         return
 
     def _transform_inputs(self, input):
@@ -321,15 +320,13 @@ class Model5MT1:
 
     def predict(self, X):
         X = self._transform_inputs(X)
-        cls = self._model.predict_classes(X, verbose=0)
-        proba = self._model.predict_proba(X, verbose=0)
-        proba *= 100
-        proba = np.round(proba, 0)
+        cls = self._model.predict(X, verbose=0)
+
         # print(cls, proba)
         # r = r[0] * 10000
         # r = np.round(r).astype(dtype=np.int8)
         # print(r)
-        return cls[0], proba[0]
+        return cls[0]
 
     def prepare_data(self, stock_code, start_date, end_date, use_cache=True):
         TMP_DATA_TABLE_NAME = 'transformed_stock_trading_5min_t1_data_' + stock_code

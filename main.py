@@ -7,9 +7,9 @@
 import os
 import numpy as np
 from datetime import date
-from ML.Model5M_T1 import Model5MT1
+from ML.Model5M_T2 import Model5MT2
 
-MODEL_NAME = 'model5m-t1.h5'
+MODEL_NAME = 'model5m-t2.h5'
 # 训练代码
 training_stock_codes = ['sz000504', 'sh600373', 'sh600088', 'sz002023', 'sz002681', 'sz000596', 'sh600048', 'sz000507',
                         'sh600128', 'sz002166', 'sh600802', 'sz002200', 'sh600847', 'sh600552', 'sh600462']
@@ -21,8 +21,8 @@ END_DATE = date(2016, 1, 5)
 TESTING_START_DATE = date(2015, 10, 12)
 TEST_SAMPLES = 100
 
-m5m = Model5MT1(MODEL_NAME)
-#
+m5m = Model5MT2(MODEL_NAME)
+
 # # 训练模型 准备数据
 # X_list, y_list = [], []
 # for code in training_stock_codes:
@@ -67,16 +67,16 @@ m5m = Model5MT1(MODEL_NAME)
 # print('test accuracy: ', accuracy)
 # exit(0)
 #
-# # 使用模型
+# 使用模型
 # stock_codes = ['sh600552',  'sh600313', 'sh600857',  'sh600128']
 # START_DATE = date(2015, 10, 14)
 # END_DATE = date(2016, 1, 5)
-stock_codes = ['sh600355']
-START_DATE = date(2015, 5, 5)
-END_DATE = date(2016, 1, 25)
+stock_codes = ['sz000917']
+START_DATE = date(2016, 1, 25)
+END_DATE = date(2016, 3, 25)
 X_list, y_list = [], []
 for code in stock_codes:
-    X, y = m5m.prepare_data(code, START_DATE, END_DATE, use_cache=False)
+    X, y = m5m.prepare_data(code, START_DATE, END_DATE, use_cache=True)
     X_list.append(X)
     y_list.append(y)
     print("\nStock code:", code)
@@ -85,13 +85,15 @@ for code in stock_codes:
 X = np.vstack(X_list)
 y = np.vstack(y_list)
 
-y = np.argmax(y, axis=1)
+# y = np.argmax(y, axis=1)
 i = 0
 err = 0
+
 for x in X:
+    x = x.reshape(1, x.shape[0], x.shape[1])
     r = m5m.predict(x)
     real_r = y[i]
-    print(r[0] == real_r, real_r, r[0], r[1])
+    print("{0}\t{1}\t{2}".format(real_r, r[0], np.abs(real_r - r[0])))
     if r[0] != real_r:
         err += 1
     i += 1
