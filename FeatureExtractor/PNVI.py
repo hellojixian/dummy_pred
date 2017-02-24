@@ -23,10 +23,15 @@ def calculate(df):
         vol_last = df.iloc[i - 1, idx_vol]
         close = df.iloc[i, idx_close]
         vol = df.iloc[i, idx_vol]
-        nvi_last = nvi_series[i-1]
-        pvi_last = pvi_series[i - 1]
-        nvi = 0
-        pvi = 0
+        if len(nvi_series) > 0:
+            nvi_last = nvi_series[i - 1]
+        else:
+            nvi_last = 0.5
+        if len(pvi_series) > 0:
+            pvi_last = pvi_series[i - 1]
+        else:
+            pvi_last = 0.5
+
         if vol < vol_last:
             nvi = nvi_last + (close - close_last) / close_last * nvi_last
             pvi = pvi_last
