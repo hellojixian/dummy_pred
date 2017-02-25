@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
-    VR, WR, MI, PNVI, OSCV, DMA, EMV
+    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -148,9 +148,12 @@ def feature_extraction(df):
     if 'emv_emv' not in df.columns:
         df = EMV.calculate(df)
 
+    if 'ema_5' not in df.columns:
+        df = EXPMA.calculate(df)
+
     df = df.dropna(how='any')
 
-    print(df[30:60])
+    print(df[36:60])
     print(df.shape)
     return df
 
@@ -252,6 +255,10 @@ def feature_scaling(df):
     df[['emv_emv']] *= emv_scale_rate
     df[['emv_maemv']] *= emv_scale_rate
 
+    df[['ema_5']] = (df[['ema_5']] - price_min) / (price_max - price_min)
+    df[['ema_15']] = (df[['ema_15']] - price_min) / (price_max - price_min)
+    df[['ema_25']] = (df[['ema_25']] - price_min) / (price_max - price_min)
+    df[['ema_40']] = (df[['ema_40']] - price_min) / (price_max - price_min)
     # print(df.head(10))
     # print(df.shape)
     return df
