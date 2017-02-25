@@ -16,7 +16,7 @@ m5m = Model5MT1(MODEL_NAME)
 start_ts = clock()
 X, y = m5m.prepare_data('sh600108', START_DATE, END_DATE, use_cache=False)
 finish_ts = clock()
-print("execution time: {:10.6} s".format(finish_ts - start_ts))
+print("\nExecution time: {:10.6} s".format(finish_ts - start_ts))
 
 
 exit(0)

@@ -147,7 +147,7 @@ def feature_extraction(df):
 
     df = df.dropna(how='any')
 
-    print(df.head(5))
+    print(df[30:60])
     print(df.shape)
     return df
 
