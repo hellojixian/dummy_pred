@@ -153,8 +153,8 @@ def feature_extraction(df):
 
     df = df.dropna(how='any')
 
-    print(df[36:60])
     print(df.shape)
+    print(df[36:60])
     return df
 
 
@@ -177,7 +177,8 @@ def feature_select(df):
              "pvi", "nvi",
              "oscv",
              "dma_dif", "dma_ama",
-             "emv_emv", "emv_maemv"
+             "emv_emv", "emv_maemv",
+             "ema_5", "ema_15", "ema_25", "ema_40"
              ]]
     return df
 
@@ -188,7 +189,7 @@ def feature_scaling(df):
     # 振幅/涨幅缩放比
     # 换手率缩放比
     amplitude_scale_rate = 100
-    vol_scale_rate = 0.001
+    vol_scale_rate = 0.001 / 5
     cci_scale_rate = 0.01
     rsi_scale_rate = 0.01
     oscv_scale_rate = 0.01
@@ -210,18 +211,12 @@ def feature_scaling(df):
     df[['roc_12']] *= amplitude_scale_rate
     df[['roc_25']] *= amplitude_scale_rate
 
-    df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
-    df[['ma5']] = (df[['ma5']] - price_min) / (price_max - price_min)
-    df[['ma15']] = (df[['ma15']] - price_min) / (price_max - price_min)
-    df[['ma25']] = (df[['ma25']] - price_min) / (price_max - price_min)
-    df[['ma40']] = (df[['ma40']] - price_min) / (price_max - price_min)
-
     df[['count']] *= vol_scale_rate
     df[['vol']] *= vol_scale_rate
-    df[['v_ma5']] *= vol_scale_rate
-    df[['v_ma15']] *= vol_scale_rate
-    df[['v_ma25']] *= vol_scale_rate
-    df[['v_ma40']] *= vol_scale_rate
+    df[['v_ma5']] *= vol_scale_rate / 10
+    df[['v_ma15']] *= vol_scale_rate / 10
+    df[['v_ma25']] *= vol_scale_rate / 10
+    df[['v_ma40']] *= vol_scale_rate / 10
 
     df[['cci_5']] *= cci_scale_rate
     df[['cci_15']] *= cci_scale_rate
@@ -234,9 +229,6 @@ def feature_scaling(df):
     df[['k9']] *= rsi_scale_rate
     df[['d9']] *= rsi_scale_rate
     df[['j9']] *= rsi_scale_rate
-
-    df[['boll_up']] = (df[['boll_up']] - price_min) / (price_max - price_min)
-    df[['boll_dn']] = (df[['boll_dn']] - price_min) / (price_max - price_min)
 
     df[['wr_5']] *= wr_scale_rate
     df[['wr_10']] *= wr_scale_rate
@@ -255,12 +247,29 @@ def feature_scaling(df):
     df[['emv_emv']] *= emv_scale_rate
     df[['emv_maemv']] *= emv_scale_rate
 
-    df[['ema_5']] = (df[['ema_5']] - price_min) / (price_max - price_min)
-    df[['ema_15']] = (df[['ema_15']] - price_min) / (price_max - price_min)
-    df[['ema_25']] = (df[['ema_25']] - price_min) / (price_max - price_min)
-    df[['ema_40']] = (df[['ema_40']] - price_min) / (price_max - price_min)
-    # print(df.head(10))
-    # print(df.shape)
+    # 下面这组数据应该与收盘价来做缩放
+    # 否则这么多维度数据数值都非常接近
+    # 缩放算法是 scaled = (value - close) * scale_rate_l2
+    scale_rate_l2 = 3
+    for index, row in df.iterrows():
+        df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2
+
+        df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_25'] = (df.loc[index, 'ema_25'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_40'] = (df.loc[index, 'ema_40'] - df.loc[index, 'close']) * scale_rate_l2
+
+        df.loc[index, 'boll_up'] = (df.loc[index, 'boll_up'] - df.loc[index, 'boll_md']) * 3
+        df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_md'] - df.loc[index, 'boll_dn']) * 3
+        df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - df.loc[index, 'close'])
+    # 最后再把价格计算差值
+    df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
+
+    print(df.head(50))
+    print(df.shape)
     return df
 
 
