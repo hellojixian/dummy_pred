@@ -2,7 +2,8 @@ import config, warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
-    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, VR, WR
+    CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
+    VR, WR, MI, PNVI, OSCV, DMA
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -129,16 +130,30 @@ def feature_extraction(df):
     if 'turnover' not in df.columns:
         df = Turnover.calculate(df, DAILY_DF)
 
-    if 'wr' not in df.columns:
+    if 'wr_5' not in df.columns:
         df = WR.calculate(df)
+
+    if 'mi_5' not in df.columns:
+        df = MI.calculate(df)
+
+    if 'pvi' not in df.columns:
+        df = PNVI.calculate(df)
+
+    if 'oscv' not in df.columns:
+        df = OSCV.calculate(df)
+
+    if 'dma_dif' not in df.columns:
+        df = DMA.calculate(df)
 
     df = df.dropna(how='any')
 
     print(df.head(5))
+    print(df.shape)
     return df
 
 
 def feature_select(df):
+    # 也许有些单维度指标需要增加 MA平滑
     df = df[["date",
              "open_change", "high_change", "low_change", "close_change",
              "close", "ma5", "ma15", "ma25", "ma40",
@@ -151,7 +166,12 @@ def feature_select(df):
              "roc_12", "roc_25",
              "change", "amplitude",
              "count", "turnover",
-             "wr_5", "wr_10", "wr_20"]]
+             "wr_5", "wr_10", "wr_20",
+             "mi_5", "mi_10", "mi_20", "mi_30",
+             "pvi", "nvi",
+             "oscv",
+             "dma_dif", "dma_ama"
+             ]]
     return df
 
 
@@ -164,7 +184,10 @@ def feature_scaling(df):
     vol_scale_rate = 0.001
     cci_scale_rate = 0.01
     rsi_scale_rate = 0.01
-    wr_scale_rate = 0.01
+    oscv_scale_rate = 0.01
+    wr_scale_rate = 0.1
+    mi_scale_rate = 10
+    dma_scale_rate = 10
 
     price_min = np.ceil(PRICE_MIN * 0.7)
     price_max = np.ceil(PRICE_MAX * 1.3)
@@ -210,6 +233,16 @@ def feature_scaling(df):
     df[['wr_5']] *= wr_scale_rate
     df[['wr_10']] *= wr_scale_rate
     df[['wr_20']] *= wr_scale_rate
+
+    df[['mi_5']] *= mi_scale_rate
+    df[['mi_10']] *= mi_scale_rate
+    df[['mi_20']] *= mi_scale_rate
+    df[['mi_30']] *= mi_scale_rate
+
+    df[['oscv']] *= oscv_scale_rate
+
+    df[['dma_dif']] *= dma_scale_rate
+    df[['dma_ama']] *= dma_scale_rate
 
     # print(df.head(10))
     # print(df.shape)
