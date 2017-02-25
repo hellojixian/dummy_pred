@@ -20,14 +20,13 @@ def _get_shifted_startdate(stock_code, startdate):
     session.configure(bind=config.DB_CONN)
     s = session()
 
-    rs = s.execute(
-        "SELECT `date` "
-        "FROM {0} "
-        "WHERE `code`='{1}' AND `date`='{2}' "
+    sql = "SELECT `date` " \
+          "FROM {0} " \
+        "WHERE `code`='{1}' AND `date`>='{2}' ORDER BY `date` ASC " \
         "LIMIT 0,1".format(
             RAW_DAILY_TABLE_NAME, stock_code, startdate
         )
-    )
+    rs = s.execute(sql)
     data = rs.fetchone()
     if data is None:
         raise RuntimeError('Start date is not a valid trading date {0} {1}'.format(stock_code, startdate))
