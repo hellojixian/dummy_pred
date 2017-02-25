@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
-    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA
+    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -22,10 +22,10 @@ def _get_shifted_startdate(stock_code, startdate):
 
     sql = "SELECT `date` " \
           "FROM {0} " \
-        "WHERE `code`='{1}' AND `date`>='{2}' ORDER BY `date` ASC " \
-        "LIMIT 0,1".format(
-            RAW_DAILY_TABLE_NAME, stock_code, startdate
-        )
+          "WHERE `code`='{1}' AND `date`>='{2}' ORDER BY `date` ASC " \
+          "LIMIT 0,1".format(
+        RAW_DAILY_TABLE_NAME, stock_code, startdate
+    )
     rs = s.execute(sql)
     data = rs.fetchone()
     if data is None:
@@ -150,6 +150,12 @@ def feature_extraction(df):
     if 'ema_5' not in df.columns:
         df = EXPMA.calculate(df)
 
+    if 'ar' not in df.columns:
+        df = ARBR.calculate(df)
+
+    if 'adx' not in df.columns:
+        df = DMI.calculate(df)
+
     df = df.dropna(how='any')
 
     print(df.shape)
@@ -177,7 +183,9 @@ def feature_select(df):
              "oscv",
              "dma_dif", "dma_ama",
              "emv_emv", "emv_maemv",
-             "ema_5", "ema_15", "ema_25", "ema_40"
+             "ema_5", "ema_15", "ema_25", "ema_40",
+             "ar", "br",
+             "pdi", "mdi", "adx", "adxr"
              ]]
     return df
 
@@ -246,6 +254,9 @@ def feature_scaling(df):
     df[['emv_emv']] *= emv_scale_rate
     df[['emv_maemv']] *= emv_scale_rate
 
+    df[['ar']] = (df[['ar']] - 100) * 0.01
+    df[['br']] = (df[['br']] - 100) * 0.01
+
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
     # 缩放算法是 scaled = (value - close) * scale_rate_l2
@@ -267,7 +278,7 @@ def feature_scaling(df):
     # 最后再把价格计算差值
     df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
 
-    print(df.head(50))
+    print(df.head(100))
     print(df.shape)
     return df
 
