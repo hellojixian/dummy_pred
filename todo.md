@@ -49,4 +49,7 @@ feature_extracted_stock_trading_5min
 带有MA的直接做一些提前量就OK
 注意哪些EMA的指标，比如MACD的处理
 
+# 安装部署注意事项
 
+sudo apt-get install libmysqlclient-dev
+sudo -H pip3 install mysqlclient
