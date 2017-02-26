@@ -21,11 +21,14 @@ def calculate(df):
 
     for i in range(0, df.shape[0]):
         psy = len(np.where(df.iloc[i - n:i, df.columns.get_loc('change')] > 0)[0])
-        psy = psy /n * 100
+        psy = psy / n * 100
         psy_list.append(psy)
 
     for i in range(0, df.shape[0]):
-        psyma = np.mean(psy_list[i - m:i])
+        if i > m:
+            psyma = np.mean(psy_list[i - m:i])
+        else:
+            psyma = 0
         psyma_list.append(psyma)
 
     df['psy'] = pd.Series(psy_list, index=df.index)

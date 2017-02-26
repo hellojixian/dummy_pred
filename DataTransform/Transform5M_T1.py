@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
-    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI, MACD
+    VR, WR, MI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI, MACD, PSY, WVAD
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -143,9 +143,6 @@ def feature_extraction(df):
     if 'mi_5' not in df.columns:
         df = MI.calculate(df)
 
-    if 'pvi' not in df.columns:
-        df = PNVI.calculate(df)
-
     if 'oscv' not in df.columns:
         df = OSCV.calculate(df)
 
@@ -170,6 +167,12 @@ def feature_extraction(df):
     if 'macd_dif' not in df.columns:
         df = MACD.calculate(df)
 
+    if 'psy' not in df.columns:
+        df = PSY.calculate(df)
+
+    if 'wvad' not in df.columns:
+        df = WVAD.calculate(df)
+
     df = df.dropna(how='any')
 
     # print(df.shape)
@@ -178,11 +181,10 @@ def feature_extraction(df):
 
 
 def feature_select(df):
-    # 也许有些单维度指标需要增加 MA平滑
     df = df[["date",
              "open_vec", "high_vec", "low_vec", "close_vec",
              "open_change", "high_change", "low_change", "close_change",
-             "ma5", "ma15", "ma25", "ma40",
+             "close", "ma5", "ma15", "ma25", "ma40",
              "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
              "cci_5", "cci_15", "cci_30",
              "rsi_6", "rsi_12", "rsi_24",
@@ -194,15 +196,16 @@ def feature_select(df):
              "count", "turnover",
              "wr_5", "wr_10", "wr_20",
              "mi_5", "mi_10", "mi_20", "mi_30",
-             "pvi", "nvi",
              "oscv",
              "dma_dif", "dma_ama",
-             "emv_emv", "emv_maemv",
              "ema_5", "ema_15", "ema_25", "ema_40",
              "ar", "br",
              "pdi", "mdi", "adx", "adxr",
              "asi_5", "asi_15", "asi_25", "asi_40",
-             "macd_dif", "macd_dea", "macd_bar"
+             "macd_dif", "macd_dea", "macd_bar",
+             "psy", "psy_ma",
+             "emv_emv", "emv_maemv",
+             "wvad", "wvad_ma"
              ]]
     return df
 
@@ -239,13 +242,13 @@ def feature_scaling(df):
     df[['amplitude']] *= amplitude_scale_rate
     df[['amplitude_maxs']] *= amplitude_scale_rate
     df[['amplitude_maxb']] *= amplitude_scale_rate
-    df[['turnover']] *= amplitude_scale_rate
+    df[['turnover']] *= amplitude_scale_rate * 10
     df[['roc_12']] *= amplitude_scale_rate
     df[['roc_25']] *= amplitude_scale_rate
 
-    df[['count']] *= vol_scale_rate / 2
+    df[['count']] *= vol_scale_rate / 2 * 10
     df[['vol']] *= vol_scale_rate / 2
-    df[['vr']] = df[['vr']] / 2
+    df[['vr']] *= 0.5
     df[['v_ma5']] *= vol_scale_rate / 5
     df[['v_ma15']] *= vol_scale_rate / 5
     df[['v_ma25']] *= vol_scale_rate / 5
@@ -295,33 +298,37 @@ def feature_scaling(df):
     df[['adx']] *= 0.5
     df[['adxr']] *= 0.5
 
-    df[['pvi']] = df[['pvi']] * 2 - 1
-    df[['nvi']] = df[['nvi']] * 2 - 1
+    df[['psy']] *= 0.01
+    df[['psy_ma']] *= 0.01
+
+    df[['wvad']] *= vol_scale_rate * 0.025
+    df[['wvad_ma']] *= vol_scale_rate * 0.025
 
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
     # 缩放算法是 scaled = (value - close) * scale_rate_l2
     scale_rate_l2 = 6
     for index, row in df.iterrows():
-        df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2 * 2
+        df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2 * 2
+        df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2 * 2
+        df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2 * 2
 
-    df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ema_25'] = (df.loc[index, 'ema_25'] - df.loc[index, 'close']) * scale_rate_l2
-    df.loc[index, 'ema_40'] = (df.loc[index, 'ema_40'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_25'] = (df.loc[index, 'ema_25'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ema_40'] = (df.loc[index, 'ema_40'] - df.loc[index, 'close']) * scale_rate_l2
 
-    df.loc[index, 'boll_up'] = (df.loc[index, 'boll_up'] - df.loc[index, 'boll_md']) * 5
-    df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_md'] - df.loc[index, 'boll_dn']) * 5
-    df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - df.loc[index, 'close']) * 10
+        df.loc[index, 'boll_up'] = (df.loc[index, 'boll_up'] - df.loc[index, 'boll_md']) * 5
+        df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_md'] - df.loc[index, 'boll_dn']) * 5
+        df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - df.loc[index, 'close']) * 10
     # 最后再把价格计算差值
-    df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
+    # df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
+    df = df.drop(labels='close', axis=1)
 
     # 要解决的问题 PVI NVI 数值太稳定
     print(df.head(100))
-    print(df.columns[25:30])
+    print(df.columns[45:50])
     print(df.shape)
     return df
 
