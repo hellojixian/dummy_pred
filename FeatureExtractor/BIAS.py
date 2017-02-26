@@ -1,6 +1,7 @@
+# http://baike.baidu.com/item/乖离率
+
 import pandas as pd
 import numpy as np
-
 
 def calculate(df):
     # N日BIAS=（当日收盘价—N日移动平均价）÷N日移动平均价×100
