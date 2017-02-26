@@ -411,16 +411,19 @@ class Model5MT1:
         TMP_DATA_TABLE_NAME = 'transformed_stock_trading_5min_t1_data_' + stock_code
         cache = CacheManager(TMP_DATA_TABLE_NAME)
 
+        t5m.init(stock_code)
         if use_cache and cache.has_cached_data():
             print("Loading data from cache")
             d = cache.load_cached_data()
         else:
             print("Loading data from query")
-            d = t5m.prepare_data(stock_code, start_date, end_date)
+            d = t5m.prepare_data(start_date, end_date)
             d = t5m.feature_extraction(d)
             d = t5m.feature_select(d)
-            d = t5m.feature_scaling(d)
             d = cache.cache_data(d)
+        print(d[40:60])
+        d = d[0:500]
+        d = t5m.feature_scaling(d)
         d = t5m.feature_reshaping(d)
         X = d[1]
         y = t5m.prepare_result(d[0], stock_code, start_date, end_date)
