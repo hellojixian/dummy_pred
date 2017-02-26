@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
-    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI
+    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI, MACD
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -159,6 +159,9 @@ def feature_extraction(df):
     if 'asi_5' not in df.columns:
         df = ASI.calculate(df)
 
+    if 'macd_dif' not in df.columns:
+        df = MACD.calculate(df)
+
     df = df.dropna(how='any')
 
     print(df.shape)
@@ -189,7 +192,8 @@ def feature_select(df):
              "ema_5", "ema_15", "ema_25", "ema_40",
              "ar", "br",
              "pdi", "mdi", "adx", "adxr",
-             "asi_5","asi_15","asi_25","asi_40",
+             "asi_5", "asi_15", "asi_25", "asi_40",
+             "macd_dif", "macd_dea", "macd_bar"
              ]]
     return df
 
@@ -208,6 +212,8 @@ def feature_scaling(df):
     mi_scale_rate = 10
     dma_scale_rate = 10
     emv_scale_rate = 3
+    asi_scale_rate = 1/3
+    macd_scale_rate = 50
 
     price_min = np.ceil(PRICE_MIN * 0.7)
     price_max = np.ceil(PRICE_MAX * 1.3)
@@ -261,10 +267,14 @@ def feature_scaling(df):
     df[['ar']] = (df[['ar']] - 100) * 0.01
     df[['br']] = (df[['br']] - 100) * 0.01
 
-    df[['asi_5']] *= 0.33
-    df[['asi_15']] *= 0.33
-    df[['asi_25']] *= 0.33
-    df[['asi_40']] *= 0.33
+    df[['asi_5']] *= asi_scale_rate
+    df[['asi_15']] *= asi_scale_rate
+    df[['asi_25']] *= asi_scale_rate
+    df[['asi_40']] *= asi_scale_rate
+
+    df[['macd_bar']] *= macd_scale_rate
+    df[['macd_dea']] *= macd_scale_rate
+    df[['macd_dif']] *= macd_scale_rate
 
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
