@@ -56,9 +56,12 @@ def calculate(df):
         dx_list.append(dx)
 
     for i in range(0, df.shape[0]):
-        dx = dx_list[i]
-        adx = (np.mean(dx_list[i - m - 1:i - 1]) + dx) / m
-        adx_list.append(adx)
+        if (i - m - 1) > 0:
+            dx = dx_list[i]
+            adx = (np.mean(dx_list[i - m - 1:i - 1]) + dx) / m
+            adx_list.append(adx)
+        else:
+            adx_list.append(0)
 
     for i in range(0, df.shape[0]):
         adx = adx_list[i]
