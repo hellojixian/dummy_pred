@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
 RAW_DAILY_TABLE_NAME = 'raw_stock_trading_daily'
 
-PRICE_MAX, PRICE_MIN = 0, 0
+PRICE_MAX, PRICE_MIN, STOCK_CODE = 0, 0, 0
 DATE_OFFSET = 1  # 需要多查询几天的日期来生成数据
 DAILY_DF = None
 limit = ""
@@ -46,39 +46,47 @@ def _get_shifted_startdate(stock_code, startdate):
     return new_date
 
 
-def prepare_data(stock_code, startdate, enddate):
+def init(stock_code):
+    global PRICE_MAX, PRICE_MIN, STOCK_CODE
+    session = sessionmaker()
+    session.configure(bind=config.DB_CONN)
+    s = session()
+    rs = s.execute(
+        "SELECT MIN(close) as min, MAX(close) as max "
+        "FROM {0} "
+        "WHERE `code`='{1}' AND `date`>='2012-01-01' AND `date`<='2017-01-01' "
+        "ORDER BY `date` ASC".format(
+            RAW_DAILY_TABLE_NAME, stock_code))
+    PRICE_MIN, PRICE_MAX = rs.fetchone()
+    STOCK_CODE = stock_code
+    s.close()
+
+
+def prepare_data(startdate, enddate):
     global PRICE_MAX, PRICE_MIN
     global DAILY_DF
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     s = session()
 
-    startdate = _get_shifted_startdate(stock_code, startdate)
+    startdate = _get_shifted_startdate(STOCK_CODE, startdate)
 
     rs = s.execute(
         "SELECT `date`, ROUND((`traded_market_value`/`close`)) as total_vol "
         "FROM {0} "
         "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' "
         "ORDER BY `date` ASC".format(
-            RAW_DAILY_TABLE_NAME, stock_code, startdate, enddate) + limit)
+            RAW_DAILY_TABLE_NAME, STOCK_CODE, startdate, enddate) + limit)
     daily_df = pd.DataFrame(rs.fetchall())
     daily_df.columns = ['date', 'total_vol']
     DAILY_DF = daily_df.set_index(['date'], drop=True)
-
-    rs = s.execute(
-        "SELECT MIN(close) as min, MAX(close) as max "
-        "FROM {0} "
-        "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' "
-        "ORDER BY `date` ASC".format(
-            RAW_DAILY_TABLE_NAME, stock_code, startdate, enddate))
-    PRICE_MIN, PRICE_MAX = rs.fetchone()
 
     rs = s.execute(
         "SELECT * "
         "FROM {0} "
         "WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' "
         "ORDER BY time ASC".format(
-            RAW_TABLE_NAME, stock_code, startdate, enddate) + limit)
+            RAW_TABLE_NAME, STOCK_CODE, startdate, enddate) + limit)
     df = pd.DataFrame(rs.fetchall())
     df.columns = ['code', 'time', 'open', 'high', 'low', 'close', 'vol', 'amount', 'count']
     df = df.set_index(['time'], drop=True)
@@ -172,8 +180,9 @@ def feature_extraction(df):
 def feature_select(df):
     # 也许有些单维度指标需要增加 MA平滑
     df = df[["date",
+             "open_vec", "high_vec", "low_vec", "close_vec",
              "open_change", "high_change", "low_change", "close_change",
-             "close", "ma5", "ma15", "ma25", "ma40",
+             "ma5", "ma15", "ma25", "ma40",
              "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
              "cci_5", "cci_15", "cci_30",
              "rsi_6", "rsi_12", "rsi_24",
@@ -181,7 +190,7 @@ def feature_select(df):
              "bias_5", "bias_10", "bias_30",
              "boll_up", "boll_md", "boll_dn",
              "roc_12", "roc_25",
-             "change", "amplitude",
+             "change", "amplitude", "amplitude_maxb", "amplitude_maxs",
              "count", "turnover",
              "wr_5", "wr_10", "wr_20",
              "mi_5", "mi_10", "mi_20", "mi_30",
@@ -204,7 +213,7 @@ def feature_scaling(df):
     # 振幅/涨幅缩放比
     # 换手率缩放比
     amplitude_scale_rate = 100
-    vol_scale_rate = 0.001 / 5
+    vol_scale_rate = 0.00025
     cci_scale_rate = 0.01
     rsi_scale_rate = 0.01
     oscv_scale_rate = 0.01
@@ -212,28 +221,35 @@ def feature_scaling(df):
     mi_scale_rate = 10
     dma_scale_rate = 10
     emv_scale_rate = 3
-    asi_scale_rate = 1/3
+    asi_scale_rate = 1 / 3
     macd_scale_rate = 50
 
     price_min = np.ceil(PRICE_MIN * 0.7)
     price_max = np.ceil(PRICE_MAX * 1.3)
 
-    df[['open_change']] *= amplitude_scale_rate
-    df[['high_change']] *= amplitude_scale_rate
-    df[['low_change']] *= amplitude_scale_rate
-    df[['close_change']] *= amplitude_scale_rate
+    df[['open_change']] *= amplitude_scale_rate * 2
+    df[['high_change']] *= amplitude_scale_rate * 2
+    df[['low_change']] *= amplitude_scale_rate * 2
+    df[['close_change']] *= amplitude_scale_rate * 2
+    df[['open_vec']] *= amplitude_scale_rate * 2
+    df[['high_vec']] *= amplitude_scale_rate * 2
+    df[['low_vec']] *= amplitude_scale_rate * 2
+    df[['close_vec']] *= amplitude_scale_rate * 2
     df[['change']] *= amplitude_scale_rate
     df[['amplitude']] *= amplitude_scale_rate
+    df[['amplitude_maxs']] *= amplitude_scale_rate
+    df[['amplitude_maxb']] *= amplitude_scale_rate
     df[['turnover']] *= amplitude_scale_rate
     df[['roc_12']] *= amplitude_scale_rate
     df[['roc_25']] *= amplitude_scale_rate
 
-    df[['count']] *= vol_scale_rate
-    df[['vol']] *= vol_scale_rate
-    df[['v_ma5']] *= vol_scale_rate / 10
-    df[['v_ma15']] *= vol_scale_rate / 10
-    df[['v_ma25']] *= vol_scale_rate / 10
-    df[['v_ma40']] *= vol_scale_rate / 10
+    df[['count']] *= vol_scale_rate / 2
+    df[['vol']] *= vol_scale_rate / 2
+    df[['vr']] = df[['vr']] / 2
+    df[['v_ma5']] *= vol_scale_rate / 5
+    df[['v_ma15']] *= vol_scale_rate / 5
+    df[['v_ma25']] *= vol_scale_rate / 5
+    df[['v_ma40']] *= vol_scale_rate / 5
 
     df[['cci_5']] *= cci_scale_rate
     df[['cci_15']] *= cci_scale_rate
@@ -261,43 +277,51 @@ def feature_scaling(df):
     df[['dma_dif']] *= dma_scale_rate
     df[['dma_ama']] *= dma_scale_rate
 
-    df[['emv_emv']] *= emv_scale_rate
-    df[['emv_maemv']] *= emv_scale_rate
+    df[['emv_emv']] *= emv_scale_rate * 2
+    df[['emv_maemv']] *= emv_scale_rate * 2
 
     df[['ar']] = (df[['ar']] - 100) * 0.01
     df[['br']] = (df[['br']] - 100) * 0.01
 
     df[['asi_5']] *= asi_scale_rate
-    df[['asi_15']] *= asi_scale_rate
-    df[['asi_25']] *= asi_scale_rate
-    df[['asi_40']] *= asi_scale_rate
+    df[['asi_15']] *= asi_scale_rate / 1.5
+    df[['asi_25']] *= asi_scale_rate / 2.5
+    df[['asi_40']] *= asi_scale_rate / 4
 
-    df[['macd_bar']] *= macd_scale_rate
-    df[['macd_dea']] *= macd_scale_rate
-    df[['macd_dif']] *= macd_scale_rate
+    df[['macd_bar']] *= macd_scale_rate / 2
+    df[['macd_dea']] *= macd_scale_rate / 2
+    df[['macd_dif']] *= macd_scale_rate / 2
+
+    df[['adx']] *= 0.5
+    df[['adxr']] *= 0.5
+
+    df[['pvi']] = df[['pvi']] * 2 - 1
+    df[['nvi']] = df[['nvi']] * 2 - 1
 
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
     # 缩放算法是 scaled = (value - close) * scale_rate_l2
-    scale_rate_l2 = 3
+    scale_rate_l2 = 6
     for index, row in df.iterrows():
         df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2
 
-        df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ema_25'] = (df.loc[index, 'ema_25'] - df.loc[index, 'close']) * scale_rate_l2
-        df.loc[index, 'ema_40'] = (df.loc[index, 'ema_40'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ema_25'] = (df.loc[index, 'ema_25'] - df.loc[index, 'close']) * scale_rate_l2
+    df.loc[index, 'ema_40'] = (df.loc[index, 'ema_40'] - df.loc[index, 'close']) * scale_rate_l2
 
-        df.loc[index, 'boll_up'] = (df.loc[index, 'boll_up'] - df.loc[index, 'boll_md']) * 3
-        df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_md'] - df.loc[index, 'boll_dn']) * 3
-        df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - df.loc[index, 'close'])
+    df.loc[index, 'boll_up'] = (df.loc[index, 'boll_up'] - df.loc[index, 'boll_md']) * 5
+    df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_md'] - df.loc[index, 'boll_dn']) * 5
+    df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - df.loc[index, 'close']) * 10
     # 最后再把价格计算差值
     df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
 
+    # 要解决的问题 PVI NVI 数值太稳定
     print(df.head(100))
+    print(df.columns[25:30])
     print(df.shape)
     return df
 
