@@ -164,8 +164,8 @@ def feature_extraction(df):
 
     df = df.dropna(how='any')
 
-    print(df.shape)
-    print(df[36:60])
+    # print(df.shape)
+    # print(df[36:60])
     return df
 
 
