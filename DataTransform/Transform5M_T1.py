@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
-    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI
+    VR, WR, MI, PNVI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI
 from sqlalchemy.orm import sessionmaker
 
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
@@ -156,6 +156,9 @@ def feature_extraction(df):
     if 'adx' not in df.columns:
         df = DMI.calculate(df)
 
+    if 'asi_5' not in df.columns:
+        df = ASI.calculate(df)
+
     df = df.dropna(how='any')
 
     print(df.shape)
@@ -185,7 +188,8 @@ def feature_select(df):
              "emv_emv", "emv_maemv",
              "ema_5", "ema_15", "ema_25", "ema_40",
              "ar", "br",
-             "pdi", "mdi", "adx", "adxr"
+             "pdi", "mdi", "adx", "adxr",
+             "asi_5","asi_15","asi_25","asi_40",
              ]]
     return df
 
@@ -256,6 +260,11 @@ def feature_scaling(df):
 
     df[['ar']] = (df[['ar']] - 100) * 0.01
     df[['br']] = (df[['br']] - 100) * 0.01
+
+    df[['asi_5']] *= 0.33
+    df[['asi_15']] *= 0.33
+    df[['asi_25']] *= 0.33
+    df[['asi_40']] *= 0.33
 
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
