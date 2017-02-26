@@ -3,7 +3,7 @@ import numpy as np
 
 
 def calculate(df):
-    price_vec_matrix = np.zeros((4, df.shape[0]))
+    price_vec_matrix = np.zeros((8, df.shape[0]))
     idx_high = df.columns.get_loc('high')
     idx_low = df.columns.get_loc('low')
     idx_close = df.columns.get_loc('close')

@@ -11,17 +11,19 @@ def calculate(df):
     idx_high = df.columns.get_loc('high')
     idx_low = df.columns.get_loc('low')
     idx_close = df.columns.get_loc('close')
+    idx_open = df.columns.get_loc('open')
     for i in range(0, df.shape[0]):
         last_close = df.iloc[i - 1, idx_close]
-        last_high = df.iloc[i - 1, idx_close]
-        last_low = df.iloc[i - 1, idx_close]
-        high = df.iloc[i, idx_close]
-        low = df.iloc[i, idx_close]
+        last_high = df.iloc[i - 1, idx_high]
+        last_low = df.iloc[i - 1, idx_low]
+        high = df.iloc[i, idx_high]
+        low = df.iloc[i, idx_low]
+        open = df.iloc[i, idx_open]
         open_price_change = (df.iloc[i, idx_high] - df.iloc[i, idx_low]) / last_close
         price_change_series.append(open_price_change)
 
-        maxb = (high - last_low) / last_low
-        maxs = (last_high - low) / last_high
+        maxb = (high-open) / open
+        maxs = (open - low) / open
         price_amp_maxb.append(maxb)
         price_amp_maxs.append(maxs)
 
