@@ -5,6 +5,7 @@ import config
 
 def load_data_to_db():
     path = os.path.join(config.MINUTE_DATA_PATH)
+    print("Unzip files")
     for cur, _dirs, files in os.walk(path):
         print(cur)
         for f in files:
@@ -13,7 +14,13 @@ def load_data_to_db():
             if file_path.endswith('zip'):
                 print("Extracting file {0}".format(file_path))
                 _unzip_file(cur, file_path)
-            elif file_path.endswith('csv'):
+    print("Loading data")
+    for cur, _dirs, files in os.walk(path):
+        print(cur)
+        for f in files:
+            file_path = os.path.join(cur, f);
+            print(file_path)
+            if file_path.endswith('csv'):
                 print("Loading data file {0}".format(file_path))
                 _load_data_files(file_path)
 
