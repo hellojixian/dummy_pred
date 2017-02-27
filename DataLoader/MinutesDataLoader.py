@@ -48,5 +48,9 @@ def _load_data_files(file_path):
                          skiprows=2,
                          header=0,
                          names=['code', 'time', 'open', 'high', 'low', 'close', 'vol', 'amount', 'count'])
-        df.to_sql(name=table_name, con=config.DB_CONN, if_exists="append", index=False)
-        print('Stock File {} loaded'.format(file_path))
+        try:
+            df.to_sql(name=table_name, con=config.DB_CONN, if_exists="append", index=False)
+            print('Stock File [{}] loaded'.format(file_path))
+        except Exception:
+            print("File [{}] has duplicated records! - skipped".format(file_path))
+
