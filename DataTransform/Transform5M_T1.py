@@ -1,4 +1,5 @@
-import config, warnings, datetime
+import Common.config as config
+import warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
@@ -10,6 +11,9 @@ RAW_TABLE_NAME = 'raw_stock_trading_5min'
 RAW_DAILY_TABLE_NAME = 'raw_stock_trading_daily'
 
 PRICE_MAX, PRICE_MIN, STOCK_CODE = 0, 0, 0
+VOL_MAX, VOL_MIN = 0, 0
+LIMIT_SAMPLE_START = '2016-01-01'
+LIMIT_SAMPLE_END = '2017-01-01'
 DATE_OFFSET = 1  # 需要多查询几天的日期来生成数据
 DAILY_DF = None
 limit = ""
@@ -47,19 +51,25 @@ def _get_shifted_startdate(stock_code, startdate):
 
 
 def init(stock_code):
-    global PRICE_MAX, PRICE_MIN, STOCK_CODE
+    global PRICE_MAX, PRICE_MIN, STOCK_CODE, \
+        VOL_MAX, VOL_MIN, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END
+
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     s = session()
     rs = s.execute(
-        "SELECT MIN(close) as min, MAX(close) as max "
+        "SELECT MIN(close) as min, MAX(close) as max, MIN(volume) as vol_min, MAX(volume) as vol_max "
         "FROM {0} "
-        "WHERE `code`='{1}' AND `date`>='2012-01-01' AND `date`<='2017-01-01' "
+        "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' "
         "ORDER BY `date` ASC".format(
-            RAW_DAILY_TABLE_NAME, stock_code))
-    PRICE_MIN, PRICE_MAX = rs.fetchone()
+            RAW_DAILY_TABLE_NAME, stock_code, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
+    PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN = rs.fetchone()
+    VOL_MAX /= 48
+    VOL_MIN /= 48
     STOCK_CODE = stock_code
     s.close()
+    print(PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN)
+    return
 
 
 def prepare_data(startdate, enddate):
@@ -180,33 +190,43 @@ def feature_extraction(df):
     return df
 
 
+def _features():
+    features = ["date",
+                "open_vec", "high_vec", "low_vec", "close_vec",
+                "open_change", "high_change", "low_change", "close_change",
+                "close", "ma5", "ma15", "ma25", "ma40",
+                "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
+                "cci_5", "cci_15", "cci_30",
+                "rsi_6", "rsi_12", "rsi_24",
+                "k9", "d9", "j9",
+                "bias_5", "bias_10", "bias_30",
+                "boll_up", "boll_md", "boll_dn",
+                "roc_12", "roc_25",
+                "change", "amplitude", "amplitude_maxb", "amplitude_maxs",
+                "count", "turnover",
+                "wr_5", "wr_10", "wr_20",
+                "mi_5", "mi_10", "mi_20", "mi_30",
+                "oscv",
+                "dma_dif", "dma_ama",
+                "ema_5", "ema_15", "ema_25", "ema_40",
+                "ar", "br",
+                "pdi", "mdi", "adx", "adxr",
+                "asi_5", "asi_15", "asi_25", "asi_40",
+                "macd_dif", "macd_dea", "macd_bar",
+                "psy", "psy_ma",
+                "emv_emv", "emv_maemv",
+                "wvad", "wvad_ma"
+                ]
+    return features
+
+def features():
+    f_list = _features()
+    f_list.remove('date')
+    f_list.remove('close')
+    return f_list
+
 def feature_select(df):
-    df = df[["date",
-             "open_vec", "high_vec", "low_vec", "close_vec",
-             "open_change", "high_change", "low_change", "close_change",
-             "close", "ma5", "ma15", "ma25", "ma40",
-             "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
-             "cci_5", "cci_15", "cci_30",
-             "rsi_6", "rsi_12", "rsi_24",
-             "k9", "d9", "j9",
-             "bias_5", "bias_10", "bias_30",
-             "boll_up", "boll_md", "boll_dn",
-             "roc_12", "roc_25",
-             "change", "amplitude", "amplitude_maxb", "amplitude_maxs",
-             "count", "turnover",
-             "wr_5", "wr_10", "wr_20",
-             "mi_5", "mi_10", "mi_20", "mi_30",
-             "oscv",
-             "dma_dif", "dma_ama",
-             "ema_5", "ema_15", "ema_25", "ema_40",
-             "ar", "br",
-             "pdi", "mdi", "adx", "adxr",
-             "asi_5", "asi_15", "asi_25", "asi_40",
-             "macd_dif", "macd_dea", "macd_bar",
-             "psy", "psy_ma",
-             "emv_emv", "emv_maemv",
-             "wvad", "wvad_ma"
-             ]]
+    df = df[_features()]
     return df
 
 
@@ -223,7 +243,7 @@ def feature_scaling(df):
     wr_scale_rate = 0.1
     mi_scale_rate = 10
     dma_scale_rate = 10
-    emv_scale_rate = 3
+    emv_scale_rate = 1
     asi_scale_rate = 1 / 3
     macd_scale_rate = 50
 
@@ -280,8 +300,8 @@ def feature_scaling(df):
     df[['dma_dif']] *= dma_scale_rate
     df[['dma_ama']] *= dma_scale_rate
 
-    df[['emv_emv']] *= emv_scale_rate * 2
-    df[['emv_maemv']] *= emv_scale_rate * 2
+    df[['emv_emv']] *= emv_scale_rate
+    df[['emv_maemv']] *= emv_scale_rate
 
     df[['ar']] = (df[['ar']] - 100) * 0.01
     df[['br']] = (df[['br']] - 100) * 0.01
@@ -326,7 +346,7 @@ def feature_scaling(df):
     # df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
     df = df.drop(labels='close', axis=1)
 
-    # print(df.head(100))
+    print(df.head(100))
     print(df.columns[45:50])
     print(df.shape)
     return df

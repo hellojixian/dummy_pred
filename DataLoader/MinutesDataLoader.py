@@ -1,6 +1,6 @@
 import os, zipfile
 import pandas as pd
-import config
+import Common.config as config
 
 
 def load_data_to_db():

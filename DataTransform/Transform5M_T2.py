@@ -1,4 +1,5 @@
-import config, warnings, datetime
+import Common.config as config
+import warnings, datetime
 import pandas as pd
 import numpy as np
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \

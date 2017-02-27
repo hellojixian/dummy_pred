@@ -407,6 +407,9 @@ class Model5MT1:
         # print(r)
         return cls[0], proba[0]
 
+    def data_features(self):
+        return t5m.features()
+
     def prepare_data(self, stock_code, start_date, end_date, use_cache=True):
         TMP_DATA_TABLE_NAME = 'transformed_stock_trading_5min_t1_data_' + stock_code
         cache = CacheManager(TMP_DATA_TABLE_NAME)
@@ -421,6 +424,7 @@ class Model5MT1:
             d = t5m.feature_extraction(d)
             d = t5m.feature_select(d)
             d = cache.cache_data(d)
+        d = d[:500]
         d = t5m.feature_scaling(d)
         d = t5m.feature_reshaping(d)
         X = d[1]

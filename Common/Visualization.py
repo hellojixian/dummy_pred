@@ -3,7 +3,8 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
-import os, config
+import os
+import Common.config as config
 
 
 def visualize_data(data_2d_list):

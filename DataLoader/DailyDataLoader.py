@@ -1,5 +1,5 @@
 import pandas as pd
-import config
+import Common.config as config
 from glob import glob
 
 
