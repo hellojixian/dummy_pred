@@ -2,6 +2,8 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import numpy as np
+import pandas as pd
+import os, config
 
 
 def visualize_data(data_2d_list):
@@ -26,13 +28,24 @@ def visualize_data(data_2d_list):
     plt.show()
 
 
-def animate_data(data_2d_list):
+def animate_data(data_2d_list, labels=[], stock_code=None):
     fig = plt.figure()
 
+    # plt.xticks(np.arange(len(labels)), labels, rotation=90)
+    def onpick(event):
+        x = event.xdata
+        if x:
+            x = int(x)
+            y = event.ydata
+            label = labels[x]
+            print("x:{0}\t Column: {1}\t ".format(x, label))
+
+    fig.canvas.mpl_connect('button_press_event', onpick)
     img_list = []
     for i in np.arange(0, len(data_2d_list)):
+        df = pd.DataFrame(data_2d_list[i], columns=labels)
         img_list.append(
-            [plt.imshow(data_2d_list[i],
+            [plt.imshow(df,
                         interpolation='bilinear',
                         cmap=cm.jet,
                         vmax=1.2,
@@ -43,7 +56,12 @@ def animate_data(data_2d_list):
     ani = animation.ArtistAnimation(fig, img_list,
                                     interval=1000, blit=True)
 
-    ani.save('data_visualized.mp4', fps=1)
+    if stock_code is not None:
+        fpath = os.path.join(config.PROJECT_ROOT,
+                             "DataVisualized",
+                             stock_code + '-data_visualized.mp4')
+        ani.save(fpath, fps=1)
+
     plt.subplots_adjust(hspace=0.001,
                         wspace=0.001,
                         left=0.04,
