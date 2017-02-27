@@ -421,8 +421,6 @@ class Model5MT1:
             d = t5m.feature_extraction(d)
             d = t5m.feature_select(d)
             d = cache.cache_data(d)
-        print(d[40:60])
-        d = d[0:500]
         d = t5m.feature_scaling(d)
         d = t5m.feature_reshaping(d)
         X = d[1]

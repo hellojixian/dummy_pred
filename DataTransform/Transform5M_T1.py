@@ -175,7 +175,7 @@ def feature_extraction(df):
 
     df = df.dropna(how='any')
 
-    # print(df.shape)
+    print(df.shape)
     # print(df[36:60])
     return df
 
@@ -326,8 +326,7 @@ def feature_scaling(df):
     # df[['close']] = (df[['close']] - price_min) / (price_max - price_min)
     df = df.drop(labels='close', axis=1)
 
-    # 要解决的问题 PVI NVI 数值太稳定
-    print(df.head(100))
+    # print(df.head(100))
     print(df.columns[45:50])
     print(df.shape)
     return df
