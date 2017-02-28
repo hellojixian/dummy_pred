@@ -12,6 +12,7 @@ RAW_DAILY_TABLE_NAME = 'raw_stock_trading_daily'
 
 PRICE_MAX, PRICE_MIN, STOCK_CODE = 0, 0, 0
 VOL_MAX, VOL_MIN = 0, 0
+COUNT_MAX, COUNT_MIN = 0, 0
 LIMIT_SAMPLE_START = '2016-01-01'
 LIMIT_SAMPLE_END = '2017-01-01'
 DATE_OFFSET = 1  # 需要多查询几天的日期来生成数据
@@ -50,25 +51,38 @@ def _get_shifted_startdate(stock_code, startdate):
     return new_date
 
 
-def init(stock_code):
-    global PRICE_MAX, PRICE_MIN, STOCK_CODE, \
-        VOL_MAX, VOL_MIN, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END
+def init(stock_code, start_date):
+    global STOCK_CODE, \
+        PRICE_MAX, PRICE_MIN, \
+        VOL_MAX, VOL_MIN, \
+        COUNT_MAX, COUNT_MIN, \
+        LIMIT_SAMPLE_START, LIMIT_SAMPLE_END
 
+    time_offset = datetime.timedelta(days=30)
+    LIMIT_SAMPLE_START = datetime.date(start_date.year, start_date.month, 1) - time_offset * 2
+    LIMIT_SAMPLE_END = LIMIT_SAMPLE_START + time_offset
+    print("Date sample range: {0} to {1}".format(LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     s = session()
+
     rs = s.execute(
-        "SELECT MIN(close) as min, MAX(close) as max, MIN(volume) as vol_min, MAX(volume) as vol_max "
+        "SELECT MIN(close) as min, MAX(close) as max "
         "FROM {0} "
-        "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' "
-        "ORDER BY `date` ASC".format(
+        "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' ".format(
             RAW_DAILY_TABLE_NAME, stock_code, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
-    PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN = rs.fetchone()
-    VOL_MAX /= 48
-    VOL_MIN /= 48
+    PRICE_MIN, PRICE_MAX = rs.fetchone()
+
+    rs = s.execute(
+        "SELECT MIN(vol) as vol_min, MAX(vol) as vol_max, MIN(vol) as count_min, MAX(vol) as count_max "
+        "FROM {0} "
+        "WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' ".format(
+            RAW_TABLE_NAME, stock_code, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
+    VOL_MIN, VOL_MAX, COUNT_MIN, COUNT_MAX = rs.fetchone()
+
     STOCK_CODE = stock_code
     s.close()
-    print(PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN)
+    print(PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN, COUNT_MIN, COUNT_MAX)
     return
 
 
@@ -185,7 +199,7 @@ def feature_extraction(df):
 
     df = df.dropna(how='any')
 
-    print(df.shape)
+    # print(df.shape)
     # print(df[36:60])
     return df
 
@@ -219,11 +233,13 @@ def _features():
                 ]
     return features
 
+
 def features():
     f_list = _features()
     f_list.remove('date')
     f_list.remove('close')
     return f_list
+
 
 def feature_select(df):
     df = df[_features()]
@@ -231,33 +247,33 @@ def feature_select(df):
 
 
 def feature_scaling(df):
+    print(df.head(100))
     # 价格缩放比
     # 成交量缩放比
     # 振幅/涨幅缩放比
     # 换手率缩放比
     amplitude_scale_rate = 100
-    vol_scale_rate = 0.00025
-    cci_scale_rate = 0.01
+    # vol_scale_rate = 0.00025
+    cci_scale_rate = 1/((PRICE_MAX - PRICE_MIN) * 40)
     rsi_scale_rate = 0.01
     oscv_scale_rate = 0.01
-    wr_scale_rate = 0.1
-    mi_scale_rate = 10
-    dma_scale_rate = 10
+    wr_scale_rate = 1/(PRICE_MAX - PRICE_MIN)/8
+    dma_scale_rate = (PRICE_MAX - PRICE_MIN) * 1.5
     emv_scale_rate = 1
     asi_scale_rate = 1 / 3
     macd_scale_rate = 50
 
-    price_min = np.ceil(PRICE_MIN * 0.7)
-    price_max = np.ceil(PRICE_MAX * 1.3)
+    # price_min = np.ceil(PRICE_MIN * 0.7)
+    # price_max = np.ceil(PRICE_MAX * 1.3)
 
-    df[['open_change']] *= amplitude_scale_rate * 2
-    df[['high_change']] *= amplitude_scale_rate * 2
-    df[['low_change']] *= amplitude_scale_rate * 2
-    df[['close_change']] *= amplitude_scale_rate * 2
-    df[['open_vec']] *= amplitude_scale_rate * 2
-    df[['high_vec']] *= amplitude_scale_rate * 2
-    df[['low_vec']] *= amplitude_scale_rate * 2
-    df[['close_vec']] *= amplitude_scale_rate * 2
+    df[['open_change']] *= amplitude_scale_rate * 1.5
+    df[['high_change']] *= amplitude_scale_rate * 1.5
+    df[['low_change']] *= amplitude_scale_rate * 1.5
+    df[['close_change']] *= amplitude_scale_rate * 1.5
+    df[['open_vec']] *= amplitude_scale_rate * 1.5
+    df[['high_vec']] *= amplitude_scale_rate * 1.5
+    df[['low_vec']] *= amplitude_scale_rate * 1.5
+    df[['close_vec']] *= amplitude_scale_rate * 1.5
     df[['change']] *= amplitude_scale_rate
     df[['amplitude']] *= amplitude_scale_rate
     df[['amplitude_maxs']] *= amplitude_scale_rate
@@ -266,16 +282,16 @@ def feature_scaling(df):
     df[['roc_12']] *= amplitude_scale_rate
     df[['roc_25']] *= amplitude_scale_rate
 
-    df[['count']] *= vol_scale_rate / 2 * 10
-    df[['vol']] *= vol_scale_rate / 2
+    df[['count']] = (df[['count']] - COUNT_MIN) / (COUNT_MAX - COUNT_MIN)
     df[['vr']] *= 0.5
-    df[['v_ma5']] *= vol_scale_rate / 5
-    df[['v_ma15']] *= vol_scale_rate / 5
-    df[['v_ma25']] *= vol_scale_rate / 5
-    df[['v_ma40']] *= vol_scale_rate / 5
+    df[['vol']] = (df[['vol']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 6
+    df[['v_ma5']] = (df[['v_ma5']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 6
+    df[['v_ma15']] = (df[['v_ma15']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 6
+    df[['v_ma25']] = (df[['v_ma25']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 6
+    df[['v_ma40']] = (df[['v_ma40']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 10
 
-    df[['cci_5']] *= cci_scale_rate
-    df[['cci_15']] *= cci_scale_rate
+    df[['cci_5']] *= cci_scale_rate / 2
+    df[['cci_15']] *= cci_scale_rate / 1.5
     df[['cci_30']] *= cci_scale_rate
 
     df[['rsi_6']] *= rsi_scale_rate
@@ -290,10 +306,10 @@ def feature_scaling(df):
     df[['wr_10']] *= wr_scale_rate
     df[['wr_20']] *= wr_scale_rate
 
-    df[['mi_5']] *= mi_scale_rate
-    df[['mi_10']] *= mi_scale_rate
-    df[['mi_20']] *= mi_scale_rate
-    df[['mi_30']] *= mi_scale_rate
+    df[['mi_5']] = df[['mi_5']] / (PRICE_MAX - PRICE_MIN) * 8
+    df[['mi_10']] = df[['mi_10']] / (PRICE_MAX - PRICE_MIN) * 8
+    df[['mi_20']] = df[['mi_20']] / (PRICE_MAX - PRICE_MIN) * 8
+    df[['mi_30']] = df[['mi_30']] / (PRICE_MAX - PRICE_MIN) * 8
 
     df[['oscv']] *= oscv_scale_rate
 
@@ -315,24 +331,27 @@ def feature_scaling(df):
     df[['macd_dea']] *= macd_scale_rate / 2
     df[['macd_dif']] *= macd_scale_rate / 2
 
-    df[['adx']] *= 0.5
-    df[['adxr']] *= 0.5
+    df[['adx']] *= 0.25
+    df[['adxr']] *= 0.25
 
     df[['psy']] *= 0.01
     df[['psy_ma']] *= 0.01
 
-    df[['wvad']] *= vol_scale_rate * 0.025
-    df[['wvad_ma']] *= vol_scale_rate * 0.025
+    df[['emv_emv']] *= (PRICE_MAX-PRICE_MIN) / (VOL_MAX-VOL_MIN) * 90
+    df[['emv_maemv']] *= (PRICE_MAX-PRICE_MIN) / (VOL_MAX-VOL_MIN) * 90
+
+    df[['wvad']] = (df[['wvad']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 2.4
+    df[['wvad_ma']] = (df[['wvad_ma']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 2.4
 
     # 下面这组数据应该与收盘价来做缩放
     # 否则这么多维度数据数值都非常接近
     # 缩放算法是 scaled = (value - close) * scale_rate_l2
-    scale_rate_l2 = 6
+    scale_rate_l2 = PRICE_MAX - PRICE_MIN
     for index, row in df.iterrows():
-        df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2 * 2
-        df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2 * 2
-        df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2 * 2
-        df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2 * 2
+        df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - df.loc[index, 'close']) * scale_rate_l2
+        df.loc[index, 'ma40'] = (df.loc[index, 'ma40'] - df.loc[index, 'close']) * scale_rate_l2
 
         df.loc[index, 'ema_5'] = (df.loc[index, 'ema_5'] - df.loc[index, 'close']) * scale_rate_l2
         df.loc[index, 'ema_15'] = (df.loc[index, 'ema_15'] - df.loc[index, 'close']) * scale_rate_l2
@@ -347,8 +366,8 @@ def feature_scaling(df):
     df = df.drop(labels='close', axis=1)
 
     print(df.head(100))
-    print(df.columns[45:50])
     print(df.shape)
+    print(pd.DataFrame(df.columns))
     return df
 
 

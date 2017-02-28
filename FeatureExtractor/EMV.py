@@ -11,7 +11,7 @@ def calculate(df):
     # A = (high-low)/2
     # B = (high_last - low_last)/2
     # C = high - low
-    # em = (a-b)*c/amount
+    # em = (a-b)*c/vol
     # emv = ma(em,n)
     # maemv = ma(emv,m)
     # n = 14
@@ -33,13 +33,13 @@ def calculate(df):
         high_last = df.iloc[i - 1, idx_high]
         low = df.iloc[i, idx_low]
         low_last = df.iloc[i - 1, idx_low]
-        amount = df.iloc[i, idx_vol]
+        vol = df.iloc[i, idx_vol]
 
         a = (high - low) / 2
         b = (high_last - low_last) / 2
         c = high - low
-        if amount != 0:
-            em = (a - b) * c / amount
+        if vol != 0:
+            em = (a - b) * c / vol
         else:
             em = 0
         em *= 1000000

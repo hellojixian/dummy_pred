@@ -414,7 +414,7 @@ class Model5MT1:
         TMP_DATA_TABLE_NAME = 'transformed_stock_trading_5min_t1_data_' + stock_code
         cache = CacheManager(TMP_DATA_TABLE_NAME)
 
-        t5m.init(stock_code)
+        t5m.init(stock_code, start_date)
         if use_cache and cache.has_cached_data():
             print("Loading data from cache")
             d = cache.load_cached_data()
