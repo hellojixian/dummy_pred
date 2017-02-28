@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import gridspec
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import numpy as np
@@ -70,3 +72,103 @@ def animate_data(data_2d_list, labels=[], stock_code=None):
                         top=1,
                         bottom=0)
     plt.show()
+    return
+
+
+def animate_data3d(data_2d_list, labels=[], stock_code=None):
+    # transforming data
+    X = range(data_2d_list[0].shape[1])
+    Y = range(data_2d_list[0].shape[0])
+    X, Y = np.meshgrid(X, Y)
+    Z = data_2d_list[0]
+
+    # declare the plot
+    fig = plt.figure(figsize=(16, 8))
+    gs = gridspec.GridSpec(2, 10)
+
+    ax = fig.add_subplot(gs[0, :6], projection='3d')
+    ax.view_init(elev=30, azim=-70)
+    ax.set_zlim(-10, 10)
+    ax.set_xlim(0, data_2d_list[0].shape[1] - 1)
+    ax.set_ylim(data_2d_list[0].shape[0] - 1, 0)
+    ax.set_aspect('equal')
+    ax.set_xlabel('Features')
+    ax.set_ylabel('Timestamp')
+    ax.set_zlabel('Values')
+
+    ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2,
+                    vmin=-1.2, )
+    ax.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+
+    ax2 = fig.add_subplot(gs[0, 6:])
+    ax2.set_xlabel('Features')
+    ax2.set_ylabel('Timestamp')
+    # ax2.set_ylim(data_2d_list[0].shape[0], 0)
+    ax2.imshow(Z,
+               interpolation='bilinear',
+               cmap=cm.jet,
+               vmax=1.2,
+               vmin=-1.2,
+               animated=True)
+    if stock_code is not None:
+        plt.title("CODE: {0}".format(str(stock_code)))
+
+    ax3 = fig.add_subplot(gs[1, :6], projection='3d')
+    ax3.view_init(elev=4, azim=-90)
+    ax3.set_zlim(-10, 10)
+
+    ax3.set_aspect('equal')
+    ax3.set_xlabel('Features')
+    ax3.set_ylabel('Timestamp')
+    ax3.set_zlabel('Values')
+    ax3.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2,
+                     vmin=-1.2, )
+    ax3.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+
+    ax4 = fig.add_subplot(gs[1, 5:], projection='3d')
+    ax4.view_init(elev=4, azim=180)
+    ax4.set_zlim(-10, 10)
+
+    ax4.set_aspect('equal')
+    ax4.set_xlabel('Features')
+    ax4.set_ylabel('Timestamp')
+    ax4.set_zlabel('Values')
+    ax4.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2,
+                     vmin=-1.2, )
+    ax4.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+
+    def update(i):
+        Z = data_2d_list[i]
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2, vmin=-1.2, )
+        ax.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+        ax3.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2, vmin=-1.2, )
+        ax3.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+        ax4.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2, vmin=-1.2, )
+        ax4.contourf(X, Y, Z, zdir='z', offset=-10, cmap=plt.cm.jet, alpha=0.5)
+        ax2.imshow(Z,
+                   interpolation='bilinear',
+                   cmap=cm.jet,
+                   vmax=1.2,
+                   vmin=-1.2,
+                   animated=True)
+        plt.title("CODE: {0} - {1}".format(str(stock_code),str(i)))
+        pass
+
+    ani = animation.FuncAnimation(fig, update, frames=data_2d_list.shape[0],
+                                  interval=1000, blit=False)
+
+    if stock_code is not None:
+        fpath = os.path.join(config.PROJECT_ROOT,
+                             "DataVisualized",
+                             stock_code + '-3d.mp4')
+        print(fpath)
+        ani.save(fpath, fps=1)
+
+    plt.subplots_adjust(hspace=0.001,
+                        wspace=0.01,
+                        left=0.00,
+                        right=0.96,
+                        top=1,
+                        bottom=0)
+    plt.show()
+    return

@@ -4,3 +4,5 @@ CacheRoot/*
 DataVisualized/*
 Models/*
 Test/*
+.*
+LOCAL_*
