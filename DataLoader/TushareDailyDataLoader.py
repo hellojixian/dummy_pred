@@ -19,6 +19,14 @@ def load_data(start_date=datetime.now().date()):
     DB = session()
     print("Fetching stock data since {}".format(start_date))
     stock_list = stock_list['code'].tolist()
+    stocks_str = []
+    for code in stock_list:
+        code = str(code)
+        if len(code) == 6 \
+                and (code[:2] == '60' \
+                             or code[:2] == '00' \
+                             or code[:2] == '30'):
+            stocks_str.append(code)
     # 两层循环嵌套，第一层按日期循环 第二层按批次轮训
     today = datetime.now().date()
     date_diff = today - start_date
@@ -27,16 +35,14 @@ def load_data(start_date=datetime.now().date()):
         delta = timedelta(days=diff)
         the_date = start_date + delta
         print("Processing stock data for {} ".format(the_date))
-        for i in range(0, len(stock_list), step):
-            stocks = stock_list[i:i + step]
-            print("Batch {}/{}\t Data:{}  [ Fetching ... ]".format(i, len(stock_list), len(stocks)), end="")
+        for i in range(0, len(stocks_str), step):
+            stocks = stocks_str[i:i + step]
+            print("Batch {}/{}\t Data:{}  [ Fetching ... ]".format(i, len(stocks_str), len(stocks)), end="")
             sys.stdout.flush()
-            stocks_str = []
-            for code in stocks:
-                stocks_str.append(str(code))
             print("", end="")
+            # print(stocks)
             sys.stdout.flush()
-            stock_data = ts.get_hists(stocks_str,
+            stock_data = ts.get_hists(stocks,
                                       ktype="D",
                                       start=str(the_date),
                                       end=str(the_date),
@@ -44,13 +50,13 @@ def load_data(start_date=datetime.now().date()):
                                       pause=2)
             print("                                 \r", end="")
             sys.stdout.flush()
-            print("Batch {}/{}\t Data:{}  [ Done ]".format(i, len(stock_list), len(stocks)), end="")
+            print("Batch {}/{}\t Data:{}  [ Done ]".format(i, len(stocks_str), len(stocks)), end="")
             sys.stdout.flush()
             time.sleep(1)
             print("                                  \r", end="")
             sys.stdout.flush()
 
-            print("Batch {}/{}\t Data:{}  [ ".format(i, len(stock_list), len(stocks)), end="")
+            print("Batch {}/{}\t Data:{}  [ ".format(i, len(stocks_str), len(stocks)), end="")
             if stock_data is not None:
                 _save_record(the_date, stock_data)
             print(" ]")
@@ -68,7 +74,7 @@ def _get_stock_list():
         print("Fetching stock list from TuShare")
         stock_list = ts.get_industry_classified()
         stock_list.to_csv(path_or_buf=cachedFile, index=False)
-    print("{} stocks found".format(stock_list.shape[0]))
+    print("{} stocks found in total".format(stock_list.shape[0]))
     return stock_list
 
 
