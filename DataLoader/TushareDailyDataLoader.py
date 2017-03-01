@@ -55,7 +55,7 @@ def _save_record(code, data):
     for date, record in data.iterrows():
         columns = ["date", "open", "high", "close", "low", "p_change", "volume", "turnover"]
         record = record[columns]
-        traded_market_value = record['volume'] / record['turnover'] * record['close']
+        traded_market_value = record['volume'] / record['turnover'] * record['close'] * 100
         sql = "INSERT INTO raw_stock_trading_daily " \
               "(`code`, `date`, `open`, `high`, `low`, `close`, `change`, `volume`, `traded_market_value`, `turnover`) " \
               "VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}'); ".format(
