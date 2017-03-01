@@ -17,7 +17,7 @@ def load_data(start_date=datetime.now().date()):
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     DB = session()
-    print("Fetching stock data since {}".format(start_date))
+
     stock_list = stock_list['code'].tolist()
     stocks_str = []
     for code in stock_list:
@@ -27,10 +27,14 @@ def load_data(start_date=datetime.now().date()):
                              or code[:2] == '00' \
                              or code[:2] == '30'):
             stocks_str.append(code)
+
+    print("{} stocks are in Shenzhen and Shanghai".format(len(stocks_str)))
+    print("Fetching stock data since {}".format(start_date))
+
     # 两层循环嵌套，第一层按日期循环 第二层按批次轮训
     today = datetime.now().date()
     date_diff = today - start_date
-    step = 100
+    step = 5
     for diff in range(date_diff.days + 1):
         delta = timedelta(days=diff)
         the_date = start_date + delta
