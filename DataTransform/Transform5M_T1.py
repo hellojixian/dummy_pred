@@ -10,8 +10,8 @@ from sqlalchemy.orm import sessionmaker
 RAW_TABLE_NAME = 'raw_stock_trading_5min'
 RAW_DAILY_TABLE_NAME = 'raw_stock_trading_daily'
 
-PRICE_MAX, PRICE_MIN, STOCK_CODE = 0, 0, 0
-VOL_MAX, VOL_MIN = 0, 0
+PRICE_MAX, PRICE_AVG, PRICE_MIN, STOCK_CODE = 0, 0, 0, 0
+VOL_MAX, VOL_AVG, VOL_MIN = 0, 0, 0
 COUNT_MAX, COUNT_MIN = 0, 0
 LIMIT_SAMPLE_START = '2016-01-01'
 LIMIT_SAMPLE_END = '2017-01-01'
@@ -53,8 +53,8 @@ def _get_shifted_startdate(stock_code, startdate):
 
 def init(stock_code, start_date):
     global STOCK_CODE, \
-        PRICE_MAX, PRICE_MIN, \
-        VOL_MAX, VOL_MIN, \
+        PRICE_MAX, PRICE_AVG, PRICE_MIN, \
+        VOL_MAX, VOL_AVG, VOL_MIN, \
         COUNT_MAX, COUNT_MIN, \
         LIMIT_SAMPLE_START, LIMIT_SAMPLE_END
 
@@ -67,22 +67,22 @@ def init(stock_code, start_date):
     s = session()
 
     rs = s.execute(
-        "SELECT MIN(close) as min, MAX(close) as max "
-        "FROM {0} "
-        "WHERE `code`='{1}' AND `date`>='{2}' AND `date`<='{3}' ".format(
-            RAW_DAILY_TABLE_NAME, stock_code, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
-    PRICE_MIN, PRICE_MAX = rs.fetchone()
-
-    rs = s.execute(
-        "SELECT MIN(vol) as vol_min, MAX(vol) as vol_max, MIN(count) as count_min, MAX(count) as count_max "
+        "SELECT "
+        "MIN(vol) as vol_min,  AVG(vol) as vol_avg, MAX(vol) as vol_max, "
+        "MIN(close) as vol_min,  AVG(close) as vol_avg, MAX(close) as vol_max, "
+        "MIN(count) as count_min, MAX(count) as count_max "
         "FROM {0} "
         "WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' ".format(
             RAW_TABLE_NAME, stock_code, LIMIT_SAMPLE_START, LIMIT_SAMPLE_END))
-    VOL_MIN, VOL_MAX, COUNT_MIN, COUNT_MAX = rs.fetchone()
+    VOL_MIN, VOL_AVG, VOL_MAX, \
+    PRICE_MIN, PRICE_AVG, PRICE_MAX, \
+    COUNT_MIN, COUNT_MAX = rs.fetchone()
 
     STOCK_CODE = stock_code
     s.close()
-    print(PRICE_MIN, PRICE_MAX, VOL_MAX, VOL_MIN, COUNT_MAX, COUNT_MIN)
+    print("Price: {} - {} - {} \n"
+          "Vol: {} - {} - {} \n"
+          "Count: {} - {}".format(PRICE_MIN, PRICE_AVG, PRICE_MAX, VOL_MIN, VOL_AVG, VOL_MAX, COUNT_MIN, COUNT_MAX))
     return
 
 
@@ -254,11 +254,9 @@ def feature_scaling(df):
     # 振幅/涨幅缩放比
     # 换手率缩放比
     amplitude_scale_rate = 100
-    # vol_scale_rate = 0.00025
     rsi_scale_rate = 0.01
     oscv_scale_rate = 0.01
     wr_scale_rate = 0.04
-    emv_scale_rate = 100
     macd_scale_rate = 50
 
     # price_min = np.ceil(PRICE_MIN * 0.7)
@@ -278,6 +276,9 @@ def feature_scaling(df):
     # 缩放算法是 scaled = (value - close) * scale_rate_l2
     for index, row in df.iterrows():
         close = df.loc[index, 'close']
+        vol = df.loc[index, 'vol']
+        if vol == 0:
+            vol = 1
         df.loc[index, 'ma5'] = (df.loc[index, 'ma5'] - close) / close * 100 / 2
         df.loc[index, 'ma15'] = (df.loc[index, 'ma15'] - close) / close * 100 / 2
         df.loc[index, 'ma25'] = (df.loc[index, 'ma25'] - close) / close * 100 / 2
@@ -292,10 +293,10 @@ def feature_scaling(df):
         df.loc[index, 'boll_dn'] = (df.loc[index, 'boll_dn'] - close) / close * 100 / 2
         df.loc[index, 'boll_md'] = (df.loc[index, 'boll_md'] - close) / close * 100 / 2
 
-        df.loc[index, 'v_ma5'] = (df.loc[index, 'v_ma5'] - df.loc[index, 'vol']) / df.loc[index, 'vol'] / 2
-        df.loc[index, 'v_ma15'] = (df.loc[index, 'v_ma15'] - df.loc[index, 'vol']) / df.loc[index, 'vol'] / 2
-        df.loc[index, 'v_ma25'] = (df.loc[index, 'v_ma25'] - df.loc[index, 'vol']) / df.loc[index, 'vol'] / 2
-        df.loc[index, 'v_ma40'] = (df.loc[index, 'v_ma40'] - df.loc[index, 'vol']) / df.loc[index, 'vol'] / 2
+        df.loc[index, 'v_ma5'] = (df.loc[index, 'v_ma5'] - vol) / vol / 2
+        df.loc[index, 'v_ma15'] = (df.loc[index, 'v_ma15'] - vol) / vol / 2
+        df.loc[index, 'v_ma25'] = (df.loc[index, 'v_ma25'] - vol) / vol / 2
+        df.loc[index, 'v_ma40'] = (df.loc[index, 'v_ma40'] - vol) / vol / 2
 
         df.loc[index, 'mi_5'] = df.loc[index, 'mi_5'] / close * 80
         df.loc[index, 'mi_10'] = df.loc[index, 'mi_10'] / close * 80
@@ -337,9 +338,6 @@ def feature_scaling(df):
     df[['dma_dif']] *= (PRICE_MAX - PRICE_MIN) / PRICE_MIN * 8
     df[['dma_ama']] *= (PRICE_MAX - PRICE_MIN) / PRICE_MIN * 8
 
-    df[['emv_emv']] *= emv_scale_rate
-    df[['emv_maemv']] *= emv_scale_rate
-
     df[['ar']] = (df[['ar']] - 100) * 0.01
     df[['br']] = (df[['br']] - 100) * 0.01
 
@@ -348,20 +346,20 @@ def feature_scaling(df):
     df[['adx']] *= 0.5
     df[['adxr']] *= 0.5
 
-    df[['asi_5']] *= 0.1
-    df[['asi_15']] *= 0.1
-    df[['asi_25']] *= 0.1
-    df[['asi_40']] *= 0.1
+    df[['asi_5']] *= 1 / PRICE_AVG
+    df[['asi_15']] *= 1 / PRICE_AVG
+    df[['asi_25']] *= 1 / PRICE_AVG
+    df[['asi_40']] *= 1 / PRICE_AVG
 
-    df[['macd_bar']] *= macd_scale_rate / 2
-    df[['macd_dea']] *= macd_scale_rate / 2
-    df[['macd_dif']] *= macd_scale_rate / 2
+    df[['macd_bar']] *= 1 / PRICE_AVG * 100
+    df[['macd_dea']] *= 1 / PRICE_AVG * 100
+    df[['macd_dif']] *= 1 / PRICE_AVG * 100
 
     df[['psy']] *= 0.01
     df[['psy_ma']] *= 0.01
 
-    df[['emv_emv']] *= (PRICE_MAX - PRICE_MIN) / (VOL_MAX - VOL_MIN) * 90
-    df[['emv_maemv']] *= (PRICE_MAX - PRICE_MIN) / (VOL_MAX - VOL_MIN) * 90
+    df[['emv_emv']] *= (PRICE_AVG / VOL_AVG)
+    df[['emv_maemv']] *= (PRICE_AVG / VOL_AVG)
 
     df[['wvad']] = (df[['wvad']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 2.4
     df[['wvad_ma']] = (df[['wvad_ma']] - VOL_MIN) / (VOL_MAX - VOL_MIN) * 2.4

@@ -119,6 +119,9 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
 
     def update(i):
         Z = data_2d_list[i]
+        # if i == 8:
+        #     p=pd.DataFrame(Z)
+        #     print(p)
         ax.clear()
         ax3.clear()
         ax4.clear()
@@ -174,7 +177,7 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
         fpath = os.path.join(config.PROJECT_ROOT,
                              "DataVisualized",
                              stock_code + '-3d.mp4')
-        ani.save(fpath, fps=1, dpi=250)
+        ani.save(fpath, fps=1)
 
 
     plt.show()

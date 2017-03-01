@@ -14,6 +14,7 @@ DB_CONN = create_engine(MYSQL_CONN)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(PROJECT_ROOT)
+CACHE_DIR = os.path.join(PROJECT_ROOT,'CacheRoot')
 
 pd.set_option('display.width', 2000)
 pd.set_option('display.max_columns', 200)

@@ -4,8 +4,6 @@ from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import numpy as np
 
-CACHE_DIR = 'CacheRoot'
-
 
 class CacheManager:
     _backend = 'csv'
@@ -36,7 +34,7 @@ class CacheManager:
             if len(rs.fetchall()):
                 r = True
         else:
-            path = os.path.join(CACHE_DIR, self._cache_table_name + '.csv')
+            path = os.path.join(config.CACHE_DIR, self._cache_table_name + '.csv')
             r = os.path.isfile(path)
         return r
 
@@ -44,7 +42,7 @@ class CacheManager:
         if self._backend == 'mysql':
             df = pd.read_sql_table(table_name=self._cache_table_name, con=config.DB_CONN, index_col='time')
         else:
-            df = pd.read_csv(os.path.join(CACHE_DIR, self._cache_table_name + '.csv'), index_col='time')
+            df = pd.read_csv(os.path.join(config.CACHE_DIR, self._cache_table_name + '.csv'), index_col='time')
             # convert back the datetime type of fields
             df['date'] = pd.to_datetime(df['date'])
             df.index = pd.to_datetime(df.index)
@@ -54,5 +52,5 @@ class CacheManager:
         if self._backend == 'mysql':
             data.to_sql(name=self._cache_table_name, con=config.DB_CONN, if_exists="replace", index=True)
         else:
-            data.to_csv(path_or_buf=os.path.join(CACHE_DIR, self._cache_table_name + '.csv'), index=True)
+            data.to_csv(path_or_buf=os.path.join(config.CACHE_DIR, self._cache_table_name + '.csv'), index=True)
         return data
