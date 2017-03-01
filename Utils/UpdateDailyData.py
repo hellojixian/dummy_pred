@@ -12,5 +12,9 @@ sys.path.append(PROJECT_ROOT)
 import DataLoader.TushareDailyDataLoader as DataLoader
 
 if __name__ == "__main__":
-    print("\n\nLoading daily data from tushare: \n\n")
-    DataLoader.load_data(datetime.date(2017, 2, 14))
+    if len(sys.argv) == 2:
+        start_date = datetime.datetime.strptime(str(sys.argv[1]), "%Y-%m-%d").date()
+    else:
+        start_date = datetime.datetime.now().date()
+    print("Loading daily data from tushare: ")
+    DataLoader.load_data(start_date)

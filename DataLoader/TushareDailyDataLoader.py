@@ -1,8 +1,10 @@
 import pandas as pd
+import numpy as np
 import Common.config as config
-import os
+import os, sys, time
 import tushare as ts
 from datetime import datetime
+from datetime import timedelta
 from sqlalchemy.orm import sessionmaker
 
 DB = None
@@ -16,17 +18,43 @@ def load_data(start_date=datetime.now().date()):
     session.configure(bind=config.DB_CONN)
     DB = session()
     print("Fetching stock data since {}".format(start_date))
-    i = 0
-    for index, record in stock_list.iterrows():
-        i += 1
-        code = str(record['code'])
-        if code[:3] != '900' and code[:3] != '200' and len(code) == 6:
-            print("[{}/{}]\t Stock: {} \t".format(i, stock_list.shape[0], code), end='')
-            stock_data = ts.get_hist_data(code, ktype="D", start=str(start_date), retry_count=10, pause=2)
-            print("Data: {} ".format(stock_data.shape[0]), end="")
-            print("[", end="")
-            _save_record(code, stock_data)
-            print("]")
+    stock_list = stock_list['code'].tolist()
+    # 两层循环嵌套，第一层按日期循环 第二层按批次轮训
+    today = datetime.now().date()
+    date_diff = today - start_date
+    step = 100
+    for diff in range(date_diff.days + 1):
+        delta = timedelta(days=diff)
+        the_date = start_date + delta
+        print("Processing stock data for {} ".format(the_date))
+        for i in range(0, len(stock_list), step):
+            stocks = stock_list[i:i + step]
+            print("Batch {}/{}\t Data:{}  [ Fetching ... ]".format(i, len(stock_list), len(stocks)), end="")
+            sys.stdout.flush()
+            stocks_str = []
+            for code in stocks:
+                stocks_str.append(str(code))
+            print("", end="")
+            sys.stdout.flush()
+            stock_data = ts.get_hists(stocks_str,
+                                      ktype="D",
+                                      start=str(the_date),
+                                      end=str(the_date),
+                                      retry_count=10,
+                                      pause=2)
+            print("                                 \r", end="")
+            sys.stdout.flush()
+            print("Batch {}/{}\t Data:{}  [ Done ]".format(i, len(stock_list), len(stocks)), end="")
+            sys.stdout.flush()
+            time.sleep(1)
+            print("                                  \r", end="")
+            sys.stdout.flush()
+
+            print("Batch {}/{}\t Data:{}  [ ".format(i, len(stock_list), len(stocks)), end="")
+            if stock_data is not None:
+                _save_record(the_date, stock_data)
+            print(" ]")
+
     DB.close()
     pass
 
@@ -44,18 +72,27 @@ def _get_stock_list():
     return stock_list
 
 
-def _save_record(code, data):
-    if code[:2] == '60':
-        code = "sh" + code
-    elif code[:2] == '00' or code[:2] == '30':
-        code = "sz" + code
-    else:
-        return
-
-    for date, record in data.iterrows():
-        columns = ["date", "open", "high", "close", "low", "p_change", "volume", "turnover"]
+def _save_record(date, data):
+    # print(record)
+    # print(data)
+    for i, record in data.iterrows():
+        columns = ["code", "date", "open", "high", "close", "low", "p_change", "volume", "turnover"]
         record = record[columns]
-        traded_market_value = record['volume'] / record['turnover'] * record['close'] * 100
+        # 转换统一数据缩放比例
+        code = str(record['code'])
+        if code[:2] == '60':
+            code = "sh" + code
+        elif code[:2] == '00' or code[:2] == '30':
+            code = "sz" + code
+        else:
+            continue
+        record['p_change'] /= 100
+        record['turnover'] /= 100
+        record['volume'] *= 100
+        record['volume'] = int(record['volume'])
+        record['turnover'] = np.round(record['turnover'], 6)
+        traded_market_value = record['volume'] / record['turnover'] * record['close']
+        traded_market_value = np.round(traded_market_value, 2)
         sql = "INSERT INTO raw_stock_trading_daily " \
               "(`code`, `date`, `open`, `high`, `low`, `close`, `change`, `volume`, `traded_market_value`, `turnover`) " \
               "VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}'); ".format(
@@ -68,4 +105,5 @@ def _save_record(code, data):
             print('.', end='')
         except Exception:
             print(':', end='')
+        sys.stdout.flush()
     pass
