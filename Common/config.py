@@ -17,4 +17,4 @@ sys.path.append(PROJECT_ROOT)
 
 pd.set_option('display.width', 2000)
 pd.set_option('display.max_columns', 200)
-pd.set_option('display.max_rows', 200)
+pd.set_option('display.max_rows', 2000)

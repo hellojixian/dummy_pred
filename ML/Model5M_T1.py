@@ -424,7 +424,7 @@ class Model5MT1:
             d = t5m.feature_extraction(d)
             d = t5m.feature_select(d)
             d = cache.cache_data(d)
-        d = d[:500]
+        # d = d[:500  # 忽略后面的数据 优化测试性能
         d = t5m.feature_scaling(d)
         d = t5m.feature_reshaping(d)
         X = d[1]

@@ -81,7 +81,7 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
     Y = range(data_2d_list[0].shape[0])
     X, Y = np.meshgrid(X, Y)
     Z = data_2d_list[0]
-    Z_MIN, Z_MAX = -6,6
+    Z_MIN, Z_MAX = -6, 6
 
     # declare the plot
     fig = plt.figure(figsize=(16, 8))
@@ -92,10 +92,6 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
     ax.set_zlim(-10, 10)
     ax.set_xlim(0, data_2d_list[0].shape[1] - 1)
     ax.set_ylim(data_2d_list[0].shape[0] - 1, 0)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Features')
-    ax.set_ylabel('Timestamp')
-    ax.set_zlabel('Values')
     ax.set_zlim(Z_MIN, Z_MAX)
     ax.autoscale(enable=False)
 
@@ -115,20 +111,11 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
     ax3.set_zlim(Z_MIN, Z_MAX)
     ax3.autoscale(enable=False)
 
-    ax3.set_aspect('equal')
-    ax3.set_xlabel('Features')
-    ax3.set_ylabel('Timestamp')
-    ax3.set_zlabel('Values')
-
     ax4 = fig.add_subplot(gs[1, 5:], projection='3d')
     ax4.view_init(elev=4, azim=0)
     ax4.set_zlim(Z_MIN, Z_MAX)
     ax4.autoscale(enable=False)
 
-    ax4.set_aspect('equal')
-    ax4.set_xlabel('Features')
-    ax4.set_ylabel('Timestamp')
-    ax4.set_zlabel('Values')
 
     def update(i):
         Z = data_2d_list[i]
@@ -140,16 +127,28 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
         ax.contourf(X, Y, Z, zdir='z', offset=Z_MIN, cmap=plt.cm.jet, alpha=0.5)
         ax.set_zlim(Z_MIN, Z_MAX)
         ax.autoscale(enable=False)
+        ax.set_aspect('equal')
+        ax.set_xlabel('Features')
+        ax.set_ylabel('Timestamp')
+        ax.set_zlabel('Values')
 
         ax3.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2, vmin=-1.2, )
         ax3.contourf(X, Y, Z, zdir='z', offset=Z_MIN, cmap=plt.cm.jet, alpha=0.5)
         ax3.set_zlim(Z_MIN, Z_MAX)
         ax3.autoscale(enable=False)
+        ax3.set_aspect('equal')
+        ax3.set_xlabel('Features')
+        ax3.set_ylabel('Timestamp')
+        ax3.set_zlabel('Values')
 
         ax4.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.jet, vmax=1.2, vmin=-1.2, )
         ax4.contourf(X, Y, Z, zdir='z', offset=Z_MIN, cmap=plt.cm.jet, alpha=0.5)
         ax4.set_zlim(Z_MIN, Z_MAX)
         ax4.autoscale(enable=False)
+        ax4.set_aspect('equal')
+        ax4.set_xlabel('Features')
+        ax4.set_ylabel('Timestamp')
+        ax4.set_zlabel('Values')
 
         img2d.set_data(Z)
         plt.suptitle("CODE: {0} - {1}".format(str(stock_code), str(i)))
@@ -158,17 +157,25 @@ def animate_data3d(data_2d_list, labels=[], stock_code=None):
     ani = animation.FuncAnimation(fig, update, frames=data_2d_list.shape[0],
                                   interval=1000, blit=False)
 
-    if stock_code is not None:
-        fpath = os.path.join(config.PROJECT_ROOT,
-                             "DataVisualized",
-                             stock_code + '-3d.mp4')
-        ani.save(fpath, fps=1, dpi=100)
-
     plt.subplots_adjust(hspace=0.001,
                         wspace=0.01,
                         left=0.00,
                         right=0.96,
                         top=1,
                         bottom=0)
+    fig.subplots_adjust(hspace=0.001,
+                        wspace=0.01,
+                        left=0.00,
+                        right=0.96,
+                        top=1,
+                        bottom=0)
+
+    if stock_code is not None:
+        fpath = os.path.join(config.PROJECT_ROOT,
+                             "DataVisualized",
+                             stock_code + '-3d.mp4')
+        ani.save(fpath, fps=1, dpi=250)
+
+
     plt.show()
     return

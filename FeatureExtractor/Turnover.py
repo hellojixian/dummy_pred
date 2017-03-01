@@ -7,6 +7,7 @@ def calculate(df, daily_df):
     # total_vol = traded_market_value / close
     # turnover_rate = volume / total_vol
     # 数值范围 0 - 0.3
+    # turnover_change
     turnover_list = []
     for i in range(0, df.shape[0]):
         date = df.index[i].date()
