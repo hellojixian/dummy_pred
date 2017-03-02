@@ -1,18 +1,21 @@
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta, time
+from datetime import time
 from sqlalchemy.orm import sessionmaker
+from time import sleep
 import Common.config as config
 import numpy as np
 import pandas as pd
-import time, sys
+import sys
+
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
     VR, WR, MI, OSCV, DMA, EMV, EXPMA, ARBR, DMI, ASI, MACD, PSY, WVAD
 
-TABLE_NAME_5MIN = "raw_stock_trading_5min"
 TABLE_NAME_DAILY = "raw_stock_trading_daily"
+TABLE_NAME_5MIN = "raw_stock_trading_5min"
 TABLE_NAME_5MIN_EXTRACTED = "feature_extracted_stock_trading_5min"
 TABLE_NAME_5MIN_SCALED = "feature_scaled_stock_trading_5min"
+TABLE_NAME_5MIN_RESULT = "result_stock_trading_5min"
 
 SAMPLE_DATE_OFFSET = 30  # 提取多少天范围内的缩放数据样本 用于获取最大 最小价格
 SAMPLE_DATE_BIAS = 7  # 提前多少天来选取缩放数据样本
@@ -31,6 +34,7 @@ class Transform5M:
         self._limit_sample_start = None
         self._limit_sample_end = None
         self._shifted_date = None
+        self._next_trading_date = None
         self._vol_min = None
         self._vol_avg = None
         self._vol_max = None
@@ -74,9 +78,10 @@ class Transform5M:
         )
         data = rs.fetchone()
         shifted_date = data[0]
+        next_trading_date = self._get_next_trading_date()
 
         # 测试两个日期差 如果跨度大于一周，那么就返回错误（最长的假期也就是黄金周）
-        date_diff = self.date - shifted_date
+        date_diff = next_trading_date - shifted_date
         if date_diff.days > 7:
             raise RuntimeError('Ignore the date, because there are '
                                'too much date distance since last trading day'.format(self.code, self.date))
@@ -84,6 +89,35 @@ class Transform5M:
         else:
             self._shifted_date = shifted_date
             return shifted_date
+
+    def _get_next_trading_date(self):
+        if self._next_trading_date is not None:
+            return self._next_trading_date
+
+        sql = "SELECT `date` " \
+              "FROM {0} " \
+              "WHERE `code`='{1}' AND `date`>'{2}' " \
+              "ORDER BY `date` ASC " \
+              "LIMIT 0,1".format(
+            TABLE_NAME_DAILY, self.code, self.date
+        )
+        rs = self.db.execute(sql)
+        data = rs.fetchone()
+        if data is None:
+            raise RuntimeError('No more trading date for {0} at or after {1}'.format(self.code, self.date))
+            return None
+
+        next_trading_date = data[0]
+
+        # 测试两个日期差 如果跨度大于一周，那么就返回错误（最长的假期也就是黄金周）
+        date_diff = next_trading_date - self.date
+        if date_diff.days > 7:
+            raise RuntimeError('Ignore the date, because there are '
+                               'too much date distance until next trading day'.format(self.code, self.date))
+            return None
+        else:
+            self._next_trading_date = next_trading_date
+            return next_trading_date
 
     def prepare_data(self):
         if self._data is not None:
@@ -443,6 +477,7 @@ class Transform5M:
         return
 
     def extract_results(self, dup_op="skip"):
+
         if self._result_data is not None:
             return self._result_data
 
@@ -451,17 +486,110 @@ class Transform5M:
             # 没有适合处理的数据
             return
 
-        print("\n\n\n")
-        print(self._feature_scaled_data)
-        print(self._feature_scaled_data.shape)
-        exit(0)
+        next_trading_date = self._get_next_trading_date()
+        if next_trading_date is None:
+            # 没有适合处理的数据
+            return
 
-        return
+            # check duplicate
+            # 看一下目标表 有没有这只股票当天的记录
+        rs = self.db.execute(
+            "SELECT COUNT(*) "
+            "FROM {0} "
+            "WHERE `code`='{1}' AND `date`='{2}'".format(
+                TABLE_NAME_5MIN_RESULT, self.code, self.date
+            )
+        )
+        data = rs.fetchone()
+        rows = int(data[0])
+        # rows = 0
 
-    def fetch_results(self):
-        return
+        if rows > 0:
+            if dup_op == 'skip':
+                # 如果遇到重复需要忽略，那就在这里就结束了
+                return
+            elif dup_op == 'replace':
+                # 如果需要替换，那就删掉表里的记录重生成
+                sql = "DELETE FROM {0} WHERE `code`='{1}' AND `date`='{2}'".format(
+                    TABLE_NAME_5MIN_RESULT, self.code, shifted_date, self.date
+                )
+                self.db.execute(sql)
+                self.db.commit()
 
-    def fetch_data(self):
+        rs = self.db.execute(
+            "SELECT * "
+            "FROM {0} "
+            "WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' "
+            "ORDER BY time ASC".format(
+                TABLE_NAME_5MIN, self.code, self.date, next_trading_date + timedelta(days=1)))
+        df = pd.DataFrame(rs.fetchall())
+        df.columns = ['code', 'time', 'open', 'high', 'low', 'close', 'vol', 'amount', 'count']
+
+        thisday_df = df[df.time < str(next_trading_date)]
+        nextday_df = df[df.time >= str(next_trading_date)]
+        thisam_df = df[df.time < datetime.combine(self.date, time.min)
+                       + timedelta(hours=12)]
+        nextam_df = nextday_df[
+            nextday_df.time <= datetime.combine(next_trading_date, time.min)
+            + timedelta(hours=12)]
+        thispm_df = thisday_df[
+            thisday_df.time >= datetime.combine(self.date, time.min)
+            + timedelta(hours=12)]
+
+        this_am_close = thisam_df.loc[thisam_df.index[thisam_df.shape[0] - 1], 'close']
+        thisday_close = thisday_df.loc[thisday_df.index[thisday_df.shape[0] - 1], 'close']
+        nextday_open = nextday_df.loc[nextday_df.index[0], 'open']
+        nextday_low = np.min(nextday_df['low'])
+        nextday_high = np.max(nextday_df['high'])
+        nextday_close = nextday_df.loc[nextday_df.index[nextday_df.shape[0] - 1], 'close']
+
+        this_pm_open_time = datetime.combine(thispm_df.loc[thispm_df.index[0], 'time'].date(), time.min) \
+                            + timedelta(hours=13)
+        this_pm_low = np.min(thispm_df['low'])
+        this_pm_close = thispm_df.loc[thispm_df.index[thispm_df.shape[0] - 1], 'close']
+        this_pm_low_time = thispm_df[thispm_df.low == this_pm_low]['time'].tolist()[0]
+        this_pm_low_timing = (this_pm_low_time - this_pm_open_time).seconds / 60 / 5  # 1 to 24
+
+        next_am_open = nextam_df.loc[nextam_df.index[0], 'open']
+        next_am_open_time = datetime.combine(nextam_df.loc[nextam_df.index[0], 'time'].date(), time.min) \
+                            + timedelta(seconds=9.5 * 60 * 60)
+        next_am_high = np.max(nextam_df['high'])
+        next_am_high_time = nextam_df[nextam_df.high == next_am_high]['time'].tolist()[0]
+        next_am_high_timing = (next_am_high_time - next_am_open_time).seconds / 60 / 5  # 1 to 24
+
+        t1_max_profit_rate = (next_am_high - this_pm_low) / this_pm_low * 100  # -10 to +10
+        next_am_high_rate = (next_am_high - this_am_close) / this_am_close * 100
+        next_am_open_rate = (next_am_open - this_am_close) / this_am_close * 100
+        this_pm_low_rate = (this_pm_low - this_am_close) / this_am_close * 100
+        this_pm_close_rate = (this_pm_close - this_am_close) / this_am_close * 100
+
+        nextday_open = (nextday_open - thisday_close) / thisday_close * 100
+        nextday_high = (nextday_high - thisday_close) / thisday_close * 100
+        nextday_low = (nextday_low - thisday_close) / thisday_close * 100
+        nextday_close = (nextday_close - thisday_close) / thisday_close * 100
+
+        result_df = pd.DataFrame()
+        result_df.loc[0, "code"] = self.code
+        result_df.loc[0, "date"] = self.date
+
+        result_df.loc[0, "nextday_open"] = nextday_open
+        result_df.loc[0, "nextday_high"] = nextday_high
+        result_df.loc[0, "nextday_low"] = nextday_low
+        result_df.loc[0, "nextday_close"] = nextday_close
+
+        result_df.loc[0, "this_pm_close_rate"] = this_pm_close_rate
+        result_df.loc[0, "this_pm_low_rate"] = this_pm_low_rate
+        result_df.loc[0, "this_pm_low_timing"] = this_pm_low_timing
+
+        result_df.loc[0, "next_am_open_rate"] = next_am_open_rate
+        result_df.loc[0, "next_am_high_rate"] = next_am_high_rate
+        result_df.loc[0, "next_am_high_timing"] = next_am_high_timing
+
+        result_df.loc[0, "t1_max_profit_rate"] = t1_max_profit_rate
+
+        self._result_data = result_df
+        result_df.to_sql(name=TABLE_NAME_5MIN_RESULT, con=config.DB_CONN, if_exists="append", index=False)
+
         return
 
 
@@ -502,7 +630,11 @@ def process_date_range(start_date, end_date):
                 t.extract_features(dup_op=dup)
                 t.feature_scaling(dup_op=dup)
                 t.extract_results(dup_op=dup)
-            except Exception:
+            except Exception as e:
+                print("\n\n\n")
+                print(e)
+                # print(e.with_traceback())
+                # exit(0)
                 pass
             # 处理代码这里结束
 
@@ -510,7 +642,7 @@ def process_date_range(start_date, end_date):
                 print(" " * 100 + "\r", end="")
                 print(">> Processing ... 100%\t[ DONE ]  \r", end="")
                 sys.stdout.flush()
-                time.sleep(0.5)
+                sleep(0.5)
                 print(" " * 100 + "\r", end="")
                 sys.stdout.flush()
 
