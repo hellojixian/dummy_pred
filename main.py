@@ -7,7 +7,7 @@
 import os
 import numpy as np
 from datetime import date
-from ML.Model5M_T2 import Model5MT2
+from Models.Model5M_T2 import Model5MT2
 
 MODEL_NAME = 'model5m-t2.h5'
 # 训练代码

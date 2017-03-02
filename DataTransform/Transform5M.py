@@ -440,11 +440,6 @@ class Transform5M:
 
         self._feature_scaled_data = df
         df.to_sql(name=TABLE_NAME_5MIN_SCALED, con=config.DB_CONN, if_exists="append", index=False)
-
-        print("\n\n\n")
-        print(self._feature_scaled_data)
-        print(self._feature_scaled_data.shape)
-        exit(0)
         return
 
     def extract_results(self, dup_op="skip"):
@@ -455,6 +450,11 @@ class Transform5M:
         if shifted_date is None:
             # 没有适合处理的数据
             return
+
+        print("\n\n\n")
+        print(self._feature_scaled_data)
+        print(self._feature_scaled_data.shape)
+        exit(0)
 
         return
 

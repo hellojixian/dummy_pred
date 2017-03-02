@@ -25,17 +25,17 @@ from keras.callbacks import EarlyStopping
 from keras.models import load_model
 
 from DataCache.CacheManager import CacheManager
-import DataTransform.Transform5M_T2 as t5m
+import DataTransform.Transform5M_T1 as t5m
 import numpy as np
 import os
 
 
-class Model5MT2:
+class Model5MT1:
     _name = None
     _model = None
 
     def __init__(self, name):
-        name = os.path.join('Models', name)
+        name = os.path.join('ModelParameters', name)
         self._name = name
 
         change_dim = 6
@@ -49,15 +49,25 @@ class Model5MT2:
         boll_dim = 3
 
         change_model = Sequential([
-            Convolution2D(88, 5, change_dim, border_mode='valid', input_shape=(1, 36, change_dim), dim_ordering='th'),
+            Convolution2D(88, 5, change_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, change_dim),
+                          dim_ordering='th',
+                          name="change_cnn_conv_1"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(32, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="change_cnn_conv_2"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(16, 1, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 1, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="change_cnn_conv_3"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
@@ -65,15 +75,25 @@ class Model5MT2:
         ])
 
         price_model = Sequential([
-            Convolution2D(88, 5, price_dim, border_mode='valid', input_shape=(1, 36, price_dim), dim_ordering='th'),
+            Convolution2D(88, 5, price_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, price_dim),
+                          dim_ordering='th',
+                          name="price_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(32, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="price_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 5, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="price_cnn_conv_3"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -81,15 +101,25 @@ class Model5MT2:
         ])
 
         vol_model = Sequential([
-            Convolution2D(88, 5, vol_dim, border_mode='valid', input_shape=(1, 36, vol_dim), dim_ordering='th'),
+            Convolution2D(88, 5, vol_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, vol_dim),
+                          dim_ordering='th',
+                          name="vol_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(32, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(32, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="vol_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 5, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="vol_cnn_conv_3"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -97,11 +127,18 @@ class Model5MT2:
         ])
 
         index_model = Sequential([
-            Convolution2D(32, 5, index_dim, border_mode='valid', input_shape=(1, 36, index_dim), dim_ordering='th'),
+            Convolution2D(32, 5, index_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, index_dim),
+                          dim_ordering='th',
+                          name="index_cnn_conv_1"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(16, 5, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 5, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="index_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -109,11 +146,18 @@ class Model5MT2:
         ])
 
         cci_model = Sequential([
-            Convolution2D(32, 5, cci_dim, border_mode='valid', input_shape=(1, 36, cci_dim), dim_ordering='th'),
+            Convolution2D(32, 5, cci_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, cci_dim),
+                          dim_ordering='th',
+                          name="cci_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="cci_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -121,11 +165,18 @@ class Model5MT2:
         ])
 
         rsi_model = Sequential([
-            Convolution2D(32, 5, rsi_dim, border_mode='valid', input_shape=(1, 36, rsi_dim), dim_ordering='th'),
+            Convolution2D(32, 5, rsi_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, rsi_dim),
+                          dim_ordering='th',
+                          name="rsi_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="rsi_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -133,11 +184,18 @@ class Model5MT2:
         ])
 
         kdj_model = Sequential([
-            Convolution2D(32, 5, kdj_dim, border_mode='valid', input_shape=(1, 36, kdj_dim), dim_ordering='th'),
+            Convolution2D(32, 5, kdj_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, kdj_dim),
+                          dim_ordering='th',
+                          name="kdj_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="kdj_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -145,11 +203,18 @@ class Model5MT2:
         ])
 
         bias_model = Sequential([
-            Convolution2D(32, 5, bias_dim, border_mode='valid', input_shape=(1, 36, bias_dim), dim_ordering='th'),
+            Convolution2D(32, 5, bias_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, bias_dim),
+                          dim_ordering='th',
+                          name="boll_cnn_conv_1"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
-            Convolution2D(16, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="boll_cnn_conv_2"),
             BatchNormalization(),
             Activation('tanh'),
             Dropout(0.25),
@@ -157,11 +222,18 @@ class Model5MT2:
         ])
 
         boll_model = Sequential([
-            Convolution2D(32, 5, boll_dim, border_mode='valid', input_shape=(1, 36, boll_dim), dim_ordering='th'),
+            Convolution2D(32, 5, boll_dim,
+                          border_mode='valid',
+                          input_shape=(1, 36, boll_dim),
+                          dim_ordering='th',
+                          name="boll_cnn_conv_1"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
-            Convolution2D(16, 8, 1, border_mode='valid', dim_ordering='th'),
+            Convolution2D(16, 8, 1,
+                          border_mode='valid',
+                          dim_ordering='th',
+                          name="boll_cnn_conv_2"),
             BatchNormalization(),
             Activation('relu'),
             Dropout(0.25),
@@ -171,28 +243,31 @@ class Model5MT2:
         self._model = Sequential([
             Merge([change_model, price_model, vol_model,
                    index_model, cci_model, rsi_model,
-                   kdj_model, bias_model, boll_model], mode='concat',
-                  concat_axis=-1),
-            # Dense(4096),
-            # BatchNormalization(),
-            # Activation('linear'),
-            # Dropout(0.5),
-            Dense(1024,init='normal'),
-            # BatchNormalization(),
-            Activation('linear'),
+                   kdj_model, bias_model, boll_model],
+                  mode='concat',
+                  concat_axis=-1,
+                  name="dnn_merge_1"),
+            Dense(4096, name="dnn_dense_2"),
+            BatchNormalization(),
+            Activation('relu'),
             Dropout(0.5),
-            Dense(512,init='normal'),
-            # BatchNormalization(),
-            Activation('linear'),
+            Dense(1024, name="dnn_dense_3"),
+            BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.5),
+            Dense(512, name="dnn_dense_4"),
+            BatchNormalization(),
+            Activation('relu'),
             Dropout(0.25),
-            Dense(256,init='normal'),
+            Dense(256, name="dnn_dense_5"),
             Dropout(0.25),
-            # BatchNormalization(),
-            Activation('linear'),
-            Dense(32,init='normal'),
-            # BatchNormalization(),
-            Activation('linear'),
-            Dense(1)
+            BatchNormalization(),
+            Activation('relu'),
+            Dense(32, name="dnn_dense_6"),
+            BatchNormalization(),
+            Activation('relu'),
+            Dense(3, name="dnn_dense_7"),
+            Activation('softmax'),
         ])
 
         print("Network output layout")
@@ -201,19 +276,20 @@ class Model5MT2:
         print("\n\n")
         # exit(0)
 
-        try:
-            self._model = load_model(name)
-        except Exception:
-            pass
-
         rmsprop = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
         sgd = SGD(lr=0.001, decay=1e-6, momentum=0.5, nesterov=True)
 
         # We add metrics to get more results you want to see
         # sgd 曾经逼近到 89%
         self._model.compile(optimizer='adadelta',  # adadelta
-                            loss='mean_squared_error',
-                            metrics=['mean_absolute_error'])
+                            loss='categorical_crossentropy',
+                            metrics=['accuracy'])
+        try:
+            # self._model = load_model(name)
+            self._model.load_weights(name + "-weights", by_name=True)
+        except Exception:
+            pass
+
         return
 
     def _transform_inputs(self, input):
@@ -312,7 +388,8 @@ class Model5MT2:
             loss, accuracy = self._model.evaluate(X_test, y_test, batch_size=200)
             print('\ntest accuracy: ', accuracy)
             print('test loss: ', loss)
-            self._model.save(self._name)
+            self._model.save(self._name + "-model")
+            self._model.save_weights(self._name + "-weights")
             retry += 1
             if retry > 20:
                 break
@@ -320,28 +397,35 @@ class Model5MT2:
 
     def predict(self, X):
         X = self._transform_inputs(X)
-        cls = self._model.predict(X, verbose=0)
-
+        cls = self._model.predict_classes(X, verbose=0)
+        proba = self._model.predict_proba(X, verbose=0)
+        proba *= 100
+        proba = np.round(proba, 0)
         # print(cls, proba)
         # r = r[0] * 10000
         # r = np.round(r).astype(dtype=np.int8)
         # print(r)
-        return cls[0]
+        return cls[0], proba[0]
+
+    def data_features(self):
+        return t5m.features()
 
     def prepare_data(self, stock_code, start_date, end_date, use_cache=True):
         TMP_DATA_TABLE_NAME = 'transformed_stock_trading_5min_t1_data_' + stock_code
         cache = CacheManager(TMP_DATA_TABLE_NAME)
 
+        t5m.init(stock_code, start_date)
         if use_cache and cache.has_cached_data():
             print("Loading data from cache")
             d = cache.load_cached_data()
         else:
             print("Loading data from query")
-            d = t5m.prepare_data(stock_code, start_date, end_date)
+            d = t5m.prepare_data(start_date, end_date)
             d = t5m.feature_extraction(d)
             d = t5m.feature_select(d)
-            d = t5m.feature_scaling(d)
             d = cache.cache_data(d)
+        # d = d[:500  # 忽略后面的数据 优化测试性能
+        d = t5m.feature_scaling(d)
         d = t5m.feature_reshaping(d)
         X = d[1]
         y = t5m.prepare_result(d[0], stock_code, start_date, end_date)
