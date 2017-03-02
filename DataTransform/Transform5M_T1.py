@@ -213,7 +213,6 @@ def _features():
                 "boll_up", "boll_md", "boll_dn",
                 "turnover", "count",
                 "vol", "vr", "v_ma5", "v_ma15", "v_ma25", "v_ma40",
-
                 "cci_5", "cci_15", "cci_30",
                 "rsi_6", "rsi_12", "rsi_24",
                 "k9", "d9", "j9",
