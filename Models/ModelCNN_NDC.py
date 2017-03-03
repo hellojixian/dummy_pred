@@ -25,7 +25,6 @@ class Model_CNN_NDC:
         cci_dim = 3
         rsi_dim = 3
         kdj_dim = 3
-        rsi_dim = 3
         bias_dim = 3
         roc_dim = 2
         change_dim = 1
@@ -579,29 +578,30 @@ class Model_CNN_NDC:
         ]
         self._model = Sequential([
             Merge(input_models, mode='concat',
-                  concat_axis=-1),
+                  concat_axis=-1,
+                  name="dnn_merge_1"),
             # Dense(4096),
             # BatchNormalization(),
             # Activation('linear'),
             # Dropout(0.5),
             Dense(1024, init='normal',
                   name="dnn_dense_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('linear'),
             Dropout(0.5),
             Dense(512, init='normal',
                   name="dnn_dense_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('linear'),
             Dropout(0.25),
             Dense(256, init='normal',
                   name="dnn_dense_3"),
             Dropout(0.25),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('linear'),
             Dense(32, init='normal',
                   name="dnn_dense_4"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('linear'),
             Dense(1)
         ])

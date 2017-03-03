@@ -19,6 +19,7 @@ if len(sys.argv) != 3:
     print("{0} start_date end_date".format(sys.argv[0]))
     exit(0)
 
+import numpy as np
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC import Model_CNN_NDC as Model
 
@@ -34,6 +35,7 @@ model = Model()
 
 data = provider.fetch_dataset(data_segment)
 results = provider.fetch_resultset(result_cols)
+results = results[result_cols]
 count = data.shape[0]
 
 splitter = round(count * data_ratio[0])
@@ -48,4 +50,6 @@ splitter = round(count * data_ratio[2])
 test_set = data[:splitter]
 test_result = results[:splitter]
 
-model.train(training_set, validation_set, test_set)
+model.train([training_set, training_result],
+            [validation_set, validation_result],
+            [test_set, test_result])
