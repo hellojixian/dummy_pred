@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, time
 from sqlalchemy.orm import sessionmaker
-import os
+import os, sys
 import Common.config as config
 import numpy as np
 import pandas as pd
@@ -91,9 +91,11 @@ class DailyFullMarket2D:
         for index, record in results.iterrows():
             i += 1
             # if i > 10: break
+            print(" "*100+"\r",end="")
             print(">> processing ... {}%\t[{}/{}] \t\t \r".format(
-                np.round((i / result_count) * 100, 2), index + 1, result_count,
+                round((i / result_count) * 100, 2), index + 1, result_count,
             ), end="")
+            sys.stdout.flush()
             code = record['code']
             date = record['date']
             start_time, end_time = self._data_slice(date, slice_type)

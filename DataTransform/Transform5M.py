@@ -616,7 +616,7 @@ def process_date_range(start_date, end_date):
         for i in range(stock_count):
             code = df[i][0]
             print(">> Processing ... {}%\t\tCode: {} [{}/{}]  \r"
-                  .format(np.round((i + 1) / stock_count * 100, 1), code, i + 1, stock_count), end="")
+                  .format(round((i + 1) / stock_count * 100, 1), code, i + 1, stock_count), end="")
             sys.stdout.flush()
 
             if code in ignored_stock_list:
