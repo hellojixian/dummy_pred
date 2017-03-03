@@ -5,7 +5,7 @@ from time import sleep
 import Common.config as config
 import numpy as np
 import pandas as pd
-import sys
+import sys, traceback
 
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
@@ -77,8 +77,16 @@ class Transform5M:
             )
         )
         data = rs.fetchone()
-        shifted_date = data[0]
+        if data is not None:
+            shifted_date = data[0]
+        else:
+            raise RuntimeError('Ignore the date, because there are '
+                               'no more data before that date'.format(self.code, self.date))
+            return None
+
         next_trading_date = self._get_next_trading_date()
+        if next_trading_date is None:
+            return None
 
         # 测试两个日期差 如果跨度大于一周，那么就返回错误（最长的假期也就是黄金周）
         date_diff = next_trading_date - shifted_date
@@ -140,6 +148,9 @@ class Transform5M:
         self._count_min, self._count_max = rs.fetchone()
 
         shifted_date = self._get_shifted_startdate()
+        if shifted_date is None:
+            return
+
         rs = self.db.execute(
             "SELECT `date`, ROUND((`traded_market_value`/`close`)) as total_vol "
             "FROM {0} "
@@ -201,6 +212,8 @@ class Transform5M:
                 self.db.commit()
 
         df = self.prepare_data()
+        if df is None:
+            return
 
         if 'open_change' not in df.columns:
             df = PriceVec.calculate(df)
@@ -321,6 +334,7 @@ class Transform5M:
                 ]
 
     def feature_scaling(self, dup_op="skip"):
+
         if self._feature_scaled_data is not None:
             return self._feature_scaled_data
 
@@ -330,6 +344,8 @@ class Transform5M:
             return
 
         df = self.extract_features()
+        if df is None:
+            return
 
         # check duplicate
         # 看一下目标表 有没有这只股票当天的记录
@@ -630,9 +646,14 @@ def process_date_range(start_date, end_date):
                 t.extract_features(dup_op=dup)
                 t.feature_scaling(dup_op=dup)
                 t.extract_results(dup_op=dup)
+            except RuntimeError:
+                pass
             except Exception as e:
                 print("\n\n\n")
+                print("Code: {}\tDate: {}".format(code, the_date))
                 print(e)
+                tb = sys.exc_info()[2]
+                traceback.print_tb(tb)
                 # print(e.with_traceback())
                 # exit(0)
                 pass

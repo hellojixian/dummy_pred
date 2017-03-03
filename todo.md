@@ -61,3 +61,10 @@ feature_extracted_stock_trading_5min
 
 sudo apt-get install libmysqlclient-dev
 sudo -H pip3 install mysqlclient
+
+
+dataset?
+
+Trainings
+    fetch_data(type)
+    fetch_result(type)

@@ -65,8 +65,9 @@ class DailyFullMarket2D:
 
         if type == 'today_full':
             end_time = date + timedelta(days=1)
+            length = 48
 
-        return start_time, end_time
+        return start_time, end_time, length
 
     def fetch_dataset(self, slice_type):
         if self._dataset is not None:
@@ -77,7 +78,7 @@ class DailyFullMarket2D:
         cache_file = os.path.join(config.CACHE_DIR, cache_key + '.h5')
         if os.path.isfile(cache_file):
             # load cache
-            h5f = h5py.File(cache_file, 'r')
+            h5f = h5py.File(cache_file, 'r', driver='core')
             self._dataset = h5f['data'][:]
             h5f.close()
             return self._dataset
@@ -90,15 +91,14 @@ class DailyFullMarket2D:
         i = 0
         for index, record in results.iterrows():
             i += 1
-            # if i > 10: break
-            print(" "*100+"\r",end="")
+            print(" " * 100 + "\r", end="")
             print(">> processing ... {}%\t[{}/{}] \t\t \r".format(
                 round((i / result_count) * 100, 2), index + 1, result_count,
             ), end="")
             sys.stdout.flush()
             code = record['code']
             date = record['date']
-            start_time, end_time = self._data_slice(date, slice_type)
+            start_time, end_time, length = self._data_slice(date, slice_type)
             rs = self.db.execute(
                 "SELECT * "
                 "FROM {} "
@@ -106,9 +106,23 @@ class DailyFullMarket2D:
                 "ORDER BY `time` ASC".format(
                     TABLE_NAME_5MIN_SCALED, code, start_time, end_time))
             df = pd.DataFrame(rs.fetchall())
+            if df.empty:
+                continue
             df = df.drop(0, axis=1)
             df = df.drop(1, axis=1)
-            dataset.append(df)
+
+            # verify data length. if not then drop it
+            if df.shape[0] == length:
+                dataset.append(df)
+            else:
+                print("code: {} {} is damaged!!  -  deleted                 ".format(code, date))
+                self.db.execute(
+                    "DELETE "
+                    "FROM {} "
+                    "WHERE `code`='{}' AND `time`>'{}' AND `time`<'{}' "
+                    "".format(
+                        TABLE_NAME_5MIN_SCALED, code, date, date+timedelta(days=1)))
+                self.db.commit()
 
         print("")
 
@@ -116,7 +130,7 @@ class DailyFullMarket2D:
         dataset = np.rollaxis(dataset, -1)
 
         self._dataset = dataset
-        h5f = h5py.File(cache_file, 'w')
+        h5f = h5py.File(cache_file, 'w', driver='core')
         h5f.create_dataset('data', data=self._dataset)
         h5f.close()
         return self._dataset

@@ -43,8 +43,11 @@ def calculate(df):
         x = e + 0.5 * f + g
         k = np.max([a, b])
         l = 3
-        si = 50 * x / r * k / l
-        si = float(si)
+        if r == 0 or k == 0:
+            si = 0
+        else:
+            si = 50 * x / r * k / l
+            si = float(si)
         si_list.append(si)
 
     for i in range(0, df.shape[0]):
