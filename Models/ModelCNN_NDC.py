@@ -172,7 +172,7 @@ class Model_CNN_NDC:
         for layer in self._model.layers:
             print(layer.output_shape)
         print("\n\n")
-        # exit(0)
+        exit(0)
 
         try:
             #self._model = load_model(self._name)

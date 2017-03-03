@@ -143,12 +143,13 @@ class Transform5M:
             WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' ".format(
             TABLE_NAME_5MIN, self.code, self._limit_sample_start, self._limit_sample_end)
         rs = self.db.execute(sql)
-        if rs is None:
-            return
-
         self._vol_min, self._vol_avg, self._vol_max, \
         self._price_min, self._price_avg, self._price_max, \
         self._count_min, self._count_max = rs.fetchone()
+
+        if self._count_min is None:
+            raise RuntimeError("Cannot fetch sample data for stock {} at {}".format(self.code, self.date))
+            return
 
         shifted_date = self._get_shifted_startdate()
         if shifted_date is None:
