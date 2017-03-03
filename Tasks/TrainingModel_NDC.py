@@ -35,7 +35,8 @@ model = Model()
 
 data = provider.fetch_dataset(data_segment)
 results = provider.fetch_resultset(result_cols)
-results = results[result_cols]
+results = results[result_cols].as_matrix()
+results = results[:, 0]
 count = data.shape[0]
 
 splitter = round(count * data_ratio[0])
