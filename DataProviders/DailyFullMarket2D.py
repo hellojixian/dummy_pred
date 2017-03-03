@@ -10,7 +10,7 @@ NAME = "DailyFullMarket"
 TABLE_NAME_DAILY = "raw_stock_trading_daily"
 TABLE_NAME_5MIN_SCALED = "feature_scaled_stock_trading_5min"
 TABLE_NAME_5MIN_RESULT = "result_stock_trading_5min"
-
+TABLE_NAME_5MIN_EXTRACTED = "feature_extracted_stock_trading_5min"
 
 class DailyFullMarket2D:
     def __init__(self, start_date, end_date):
@@ -107,6 +107,30 @@ class DailyFullMarket2D:
                     TABLE_NAME_5MIN_SCALED, code, start_time, end_time))
             df = pd.DataFrame(rs.fetchall())
             if df.empty:
+                print("code: {} {} is missing training data !!  -  deleted the result and data               ".format(code, date))
+                self.db.execute(
+                    "DELETE "
+                    "FROM {} "
+                    "WHERE `code`='{}' AND `date`='{}' "
+                    "".format(
+                        TABLE_NAME_5MIN_RESULT, code, date))
+                self.db.commit()
+
+                self.db.execute(
+                    "DELETE "
+                    "FROM {} "
+                    "WHERE `code`='{}' AND `time`>'{}' AND `time`<'{}' "
+                    "".format(
+                        TABLE_NAME_5MIN_EXTRACTED, code, date,date+timedelta(days=1)))
+                self.db.commit()
+
+                self.db.execute(
+                    "DELETE "
+                    "FROM {} "
+                    "WHERE `code`='{}' AND `time`>'{}' AND `time`<'{}' "
+                    "".format(
+                        TABLE_NAME_5MIN_SCALED, code, date, date + timedelta(days=1)))
+                self.db.commit()
                 continue
             df = df.drop(0, axis=1)
             df = df.drop(1, axis=1)
@@ -115,7 +139,7 @@ class DailyFullMarket2D:
             if df.shape[0] == length:
                 dataset.append(df)
             else:
-                print("code: {} {} is damaged!!  -  deleted                 ".format(code, date))
+                print("code: {} {} is damaged!!  -  deleted the data                ".format(code, date))
                 self.db.execute(
                     "DELETE "
                     "FROM {} "

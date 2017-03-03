@@ -135,14 +135,17 @@ class Transform5M:
         time_bias = timedelta(days=SAMPLE_DATE_BIAS)
         self._limit_sample_start = self.date - time_offset - time_bias
         self._limit_sample_end = self._limit_sample_start + time_offset
-        rs = self.db.execute(
-            "SELECT "
-            "MIN(vol) as vol_min,  AVG(vol) as vol_avg, MAX(vol) as vol_max, "
-            "MIN(close) as vol_min,  AVG(close) as vol_avg, MAX(close) as vol_max, "
-            "MIN(count) as count_min, MAX(count) as count_max "
-            "FROM {0} "
-            "WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' ".format(
-                TABLE_NAME_5MIN, self.code, self._limit_sample_start, self._limit_sample_end))
+        sql = "SELECT \
+            MIN(vol) as vol_min,  AVG(vol) as vol_avg, MAX(vol) as vol_max,  \
+            MIN(close) as vol_min,  AVG(close) as vol_avg, MAX(close) as vol_max, \
+            MIN(count) as count_min, MAX(count) as count_max \
+            FROM {0} \
+            WHERE `code`='{1}' AND `time`>='{2}' AND `time`<='{3}' ".format(
+            TABLE_NAME_5MIN, self.code, self._limit_sample_start, self._limit_sample_end)
+        rs = self.db.execute(sql)
+        if rs is None:
+            return
+
         self._vol_min, self._vol_avg, self._vol_max, \
         self._price_min, self._price_avg, self._price_max, \
         self._count_min, self._count_max = rs.fetchone()
@@ -639,24 +642,7 @@ def process_date_range(start_date, end_date):
                 continue
 
             # 每股的处理代码在这里
-            dup = "skip"
-            try:
-                t = Transform5M(code, the_date)
-                t.db = s
-                t.extract_features(dup_op=dup)
-                t.feature_scaling(dup_op=dup)
-                t.extract_results(dup_op=dup)
-            except RuntimeError:
-                pass
-            except Exception as e:
-                print("\n\n\n")
-                print("Code: {}\tDate: {}".format(code, the_date))
-                print(e)
-                tb = sys.exc_info()[2]
-                traceback.print_tb(tb)
-                # print(e.with_traceback())
-                # exit(0)
-                pass
+            process_single_shot(code, the_date, "skip", db=s)
             # 处理代码这里结束
 
             if (i + 1) == stock_count:
@@ -668,4 +654,37 @@ def process_date_range(start_date, end_date):
                 sys.stdout.flush()
 
     s.close()
+    return
+
+
+def process_single_shot(code, date, dup="skip", db=None):
+    own_session = False
+    if db is None:
+        session = sessionmaker()
+        session.configure(bind=config.DB_CONN)
+        db = session()
+        own_session = True
+
+    # 每股的处理代码在这里
+    try:
+        t = Transform5M(code, date)
+        t.db = db
+        t.extract_features(dup_op=dup)
+        t.feature_scaling(dup_op=dup)
+        t.extract_results(dup_op=dup)
+    except RuntimeError:
+        pass
+    except Exception as e:
+        print("\n\n\n")
+        print("Code: {}\tDate: {}".format(code, date))
+        print(e)
+        tb = sys.exc_info()[2]
+        traceback.print_tb(tb)
+        # print(e.with_traceback())
+        # exit(0)
+        pass
+        # 处理代码这里结束
+
+    if own_session == True:
+        db.close()
     return
