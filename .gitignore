@@ -6,3 +6,4 @@ DataVisualized/*
 Test/*
 .*
 LOCAL_*
+*.whl

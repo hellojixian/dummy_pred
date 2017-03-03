@@ -160,6 +160,16 @@ class DailyFullMarket2D:
         return self._dataset
 
     def fetch_resultset(self, columns=[]):
+        if self._resultset is not None:
+            return self._resultset
+
+        cache_key = NAME + '-' + '_'.join(columns) + str(self.start_date) + '-' + str(self.end_date)
+        cache_file = os.path.join(config.CACHE_DIR, cache_key + '-result.csv')
+        if os.path.isfile(cache_file):
+            df = pd.read_csv(cache_file)
+            # df.columns = columns
+            self._resultset = df
+            return self._resultset
 
         shifted_start_date = self._get_shifted_startdate()
         columns = ['code', 'date'] + columns
@@ -173,6 +183,7 @@ class DailyFullMarket2D:
                 columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date))
         df = pd.DataFrame(rs.fetchall())
         df.columns = columns
+        df.to_csv(path_or_buf=cache_file, index=False)
 
         self._resultset = df
         return self._resultset
