@@ -9,19 +9,36 @@ import os
 
 from DataTransform.Transform5M import Transform5M as t5m
 
+
 class Model_CNN_NDC:
     def __init__(self):
         self._name = "Model_CNN_NDC"
-        self.data_features()
-        change_dim = 6
-        price_dim = 7
+
+        price_vec_dim = 4
+        price_change_dim = 4
+        ma_dim = 4
+        ema_dim = 4
+        boll_dim = 3
         vol_dim = 8
-        index_dim = 2
         cci_dim = 3
+        rsi_dim = 3
         kdj_dim = 3
         rsi_dim = 3
         bias_dim = 3
-        boll_dim = 3
+        roc_dim = 2
+        change_dim = 1
+        amp_dim = 3
+        wr_dim = 3
+        mi_dim = 4
+        oscv_dim = 1
+        dma_dim = 2
+        abr_dim = 2
+        mdi_dim = 4
+        asi_dim = 4
+        macd_dim = 3
+        psy_dim = 2
+        emv_dim = 2
+        wvad_dim = 2
 
         change_model = Sequential([
             Convolution2D(88, 5, change_dim, border_mode='valid', input_shape=(1, 36, change_dim), dim_ordering='th'),
@@ -143,10 +160,14 @@ class Model_CNN_NDC:
             Flatten()
         ])
 
+        input_models = [
+            price_vec_model, price_change_model, ma_model, ema_model,
+            boll_model, vol_model, cci_model, rsi_model, kdj_model, bias_model, roc_model,
+            change_model, amp_model, wr_model, mi_model, oscv_model, dma_model, abr_model,
+            mdi_model, asi_model, macd_model, psy_model, emv_model, wvad_model
+        ]
         self._model = Sequential([
-            Merge([change_model, price_model, vol_model,
-                   index_model, cci_model, rsi_model,
-                   kdj_model, bias_model, boll_model], mode='concat',
+            Merge(input_models, mode='concat',
                   concat_axis=-1),
             # Dense(4096),
             # BatchNormalization(),
@@ -177,7 +198,7 @@ class Model_CNN_NDC:
         exit(0)
 
         try:
-            #self._model = load_model(self._name)
+            # self._model = load_model(self._name)
             self._model.load_weights(self._name + "-weights", by_name=True)
         except Exception:
             pass
@@ -199,17 +220,37 @@ class Model_CNN_NDC:
     def _transform_inputs(self, input):
         input = input.reshape(input.shape[0], 1, input.shape[1], input.shape[2])
 
-        change_in = input[:, :, :, [0, 1, 2, 3, 32, 33]]
-        price_in = input[:, :, :, [4, 5, 6, 7, 8, 27, 29]]
-        vol_in = input[:, :, :, [9, 10, 11, 12, 13, 14, 34, 35]]
-        index_in = input[:, :, :, [30, 31]]
-        cci_in = input[:, :, :, [15, 16, 17]]
-        rsi_in = input[:, :, :, [18, 19, 20]]
-        kdj_in = input[:, :, :, [21, 22, 23]]
-        bias_in = input[:, :, :, [24, 25, 26]]
-        boll_in = input[:, :, :, [27, 28, 29]]
+        price_vec_in = input[:, :, :, [0, 1, 2, 3]]
+        price_change_in = input[:, :, :, [4, 5, 6, 7]]
+        ma_in = input[:, :, :, [8, 9, 10, 11]]
+        ema_in = input[:, :, :, [12, 13, 14, 15]]
+        boll_in = input[:, :, :, [16, 17, 18]]
+        vol_in = input[:, :, :, [19, 20, 21, 22, 23, 24, 25, 26]]
+        cci_in = input[:, :, :, [27, 28, 29]]
+        rsi_in = input[:, :, :, [30, 31, 32]]
+        kdj_in = input[:, :, :, [33, 34, 35]]
+        bias_in = input[:, :, :, [36, 37, 38]]
+        roc_in = input[:, :, :, [39, 40]]
+        change_in = input[:, :, :, [41]]
+        amp_in = input[:, :, :, [42, 43, 44]]
+        wr_in = input[:, :, :, [45, 46, 47]]
+        mi_in = input[:, :, :, [48, 49, 50, 51]]
+        oscv_in = input[:, :, :, [52]]
+        dma_in = input[:, :, :, [53, 54]]
+        abr_in = input[:, :, :, [55, 56]]
+        mdi_in = input[:, :, :, [57, 58, 59, 60]]
+        asi_in = input[:, :, :, [61, 62, 63, 64]]
+        macd_in = input[:, :, :, [65, 66, 67]]
+        psy_in = input[:, :, :, [68, 69]]
+        emv_in = input[:, :, :, [70, 71]]
+        wvad_in = input[:, :, :, [72, 73]]
 
-        input = [change_in, price_in, vol_in, index_in, cci_in, rsi_in, kdj_in, bias_in, boll_in]
+        input = [
+            price_vec_in, price_change_in, ma_in, ema_in,
+            boll_in, vol_in, cci_in, rsi_in, kdj_in, bias_in, roc_in,
+            change_in,amp_in,wr_in,mi_in,oscv_in,dma_in,abr_in,
+            mdi_in,asi_in,macd_in,psy_in,emv_in,wvad_in
+        ]
         return input
 
     def train(self, training_set, validation_set, test_set):
