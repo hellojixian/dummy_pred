@@ -3,14 +3,16 @@ from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, Bat
 from keras.optimizers import SGD, RMSprop
 from keras.callbacks import EarlyStopping
 from keras.models import load_model
+import pandas as pd
 import numpy as np
 import os
 
+from DataTransform.Transform5M import Transform5M as t5m
 
 class Model_CNN_NDC:
     def __init__(self):
         self._name = "Model_CNN_NDC"
-
+        self.data_features()
         change_dim = 6
         price_dim = 7
         vol_dim = 8
@@ -188,49 +190,14 @@ class Model_CNN_NDC:
                             metrics=['mean_absolute_error'])
         return
 
+    def data_features(self):
+        features = t5m.features()
+        for i in range(len(features)):
+            print("{} - {}".format(i, features[i]))
+        return
+
     def _transform_inputs(self, input):
         input = input.reshape(input.shape[0], 1, input.shape[1], input.shape[2])
-        # 0: "open_change"
-        # 1: "high_change",
-        # 2: "low_change",
-        # 3: "close_change",
-
-        # 4: "close",
-        # 5: "ma5",
-        # 6: "ma15",
-        # 7: "ma25",
-        # 8: "ma40",
-        #
-        # 9: "vol",
-        # 10:"vr",
-        # 11:"v_ma5",
-        # 12:"v_ma15",
-        # 13:"v_ma25",
-        # 14:"v_ma40",
-        #
-        # 15: "cci_5",
-        # 16: "cci_15",
-        # 17: "cci_30",
-        # 18: "rsi_6",
-        # 19: "rsi_12",
-        # 20: "rsi_24",
-        # 21: "k9",
-        # 22: "d9",
-        # 23: "j9",
-        # 24: "bias_5",
-        # 25: "bias_10",
-        # 26: "bias_30",
-        #
-        # 27: "boll_up",
-        # 28: "boll_md",
-        # 29: "boll_dn",
-        # 30: "roc_12",
-        # 31: "roc_25",
-        #
-        # 32: "change",
-        # 33: "amplitude",
-        # 34: "count",
-        # 35: "turnover"]]
 
         change_in = input[:, :, :, [0, 1, 2, 3, 32, 33]]
         price_in = input[:, :, :, [4, 5, 6, 7, 8, 27, 29]]

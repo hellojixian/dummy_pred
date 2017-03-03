@@ -310,7 +310,8 @@ class Transform5M:
 
         return
 
-    def features(self):
+    @staticmethod
+    def features():
         return ["open_vec", "high_vec", "low_vec", "close_vec",
                 "open_change", "high_change", "low_change", "close_change",
                 "ma5", "ma15", "ma25", "ma40",
