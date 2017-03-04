@@ -11,6 +11,7 @@ the first dim is the numerical index
 '''
 
 import os, sys, datetime
+import pandas as pd
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(PROJECT_ROOT)
@@ -25,12 +26,10 @@ else:
     start_date = datetime.datetime.strptime(str(sys.argv[1]), "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(str(sys.argv[2]), "%Y-%m-%d").date()
 
-
 import numpy as np
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC import Model_CNN_NDC as Model
 
-data_ratio = [0.85, 0.1, 0.15]
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
@@ -38,28 +37,20 @@ provider = Provider(start_date, end_date)
 model = Model()
 
 results = provider.fetch_resultset(result_cols)
-results = results[result_cols].as_matrix()
-results = results[:, 0]
 data = provider.fetch_dataset(data_segment)
-
+results = results[result_cols]
+real_results = results.as_matrix()[:, 0]
 
 # data = data[:1000]
-# results = results[:1000]
+# real_results = results[:1000]
 
-count = data.shape[0]
+print("Evaluating {} samples".format(data.shape[0]))
+pred_results = model.predict(data)
+pred_results = pred_results.reshape(1, -1)
 
-splitter = round(count * data_ratio[0])
-training_set = data[:splitter]
-training_result = results[:splitter]
+pd.set_option('display.max_rows', results.shape[0])
+results = pd.DataFrame(results)
+results['prediction'] = pd.Series(pred_results[0].tolist())
+results[['diff']] = results[[result_cols[0]]] - results[['prediction']]
 
-splitter = round(count * data_ratio[1])
-validation_set = data[:splitter]
-validation_result = results[:splitter]
-
-splitter = round(count * data_ratio[2])
-test_set = data[:splitter]
-test_result = results[:splitter]
-
-model.train([training_set, training_result],
-            [validation_set, validation_result],
-            [test_set, test_result])
+print(results[:5])

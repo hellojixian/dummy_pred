@@ -172,8 +172,8 @@ class DailyFullMarket2D:
             return self._resultset
 
         shifted_start_date = self._get_shifted_startdate()
-        columns = ['code', 'date'] + columns
-        columns_str = '`' + "`,`".join(columns) + '`'
+        columns_list = ['code', 'date'] + columns
+        columns_str = '`' + "`,`".join(columns_list) + '`'
 
         rs = self.db.execute(
             "SELECT {} "
@@ -182,7 +182,7 @@ class DailyFullMarket2D:
             "ORDER BY `date` ASC".format(
                 columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date))
         df = pd.DataFrame(rs.fetchall())
-        df.columns = columns
+        df.columns = columns_list
         df.to_csv(path_or_buf=cache_file, index=False)
 
         self._resultset = df

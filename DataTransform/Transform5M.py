@@ -6,6 +6,7 @@ import Common.config as config
 import numpy as np
 import pandas as pd
 import sys, traceback
+import multiprocessing as mp
 
 from FeatureExtractor import PriceAmplitude, PriceVec, PriceChange, \
     CCI, PriceMA, VolMA, Turnover, RSI, KDJ, BIAS, BOLL, ROC, \
@@ -620,9 +621,12 @@ def process_date_range(start_date, end_date):
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     s = session()
+
+    print("{} CPUs will be used for processing".format(mp.cpu_count()))
     for diff in range(date_diff.days):
         delta = timedelta(days=diff)
         the_date = start_date + delta
+
         print("Transforming data: {}\t".format(the_date), end="")
         sql = "SELECT `code` FROM `{}` WHERE `date`='{}' GROUP BY `code`".format(
             TABLE_NAME_DAILY, the_date
@@ -634,37 +638,64 @@ def process_date_range(start_date, end_date):
         print(" - {} stocks found".format(stock_count))
         if len(df) == 0:
             continue
-        for i in range(stock_count):
-            code = df[i][0]
-            print(">> Processing ... {}%\t\tCode: {} [{}/{}]  \r"
-                  .format(round((i + 1) / stock_count * 100, 1), code, i + 1, stock_count), end="")
-            sys.stdout.flush()
 
-            if code in ignored_stock_list:
-                continue
+        pool = mp.Pool()
+        pool_res = []
 
-            # 每股的处理代码在这里
-            process_single_shot(code, the_date, "skip", db=s)
-            # 处理代码这里结束
-
-            if (i + 1) == stock_count:
+        def callback(res):
+            # print(res)
+            pool_res.append(res)
+            i = len(pool_res)
+            if i < stock_count:
+                print(">> Processing ... {}%\t\tCode: {} [{}/{}]  \r"
+                      .format(round(i / stock_count * 100, 1), code, i, stock_count), end="")
+                sys.stdout.flush()
+            elif i == stock_count:
                 print(" " * 100 + "\r", end="")
                 print(">> Processing ... 100%\t[ DONE ]  \r", end="")
                 sys.stdout.flush()
                 sleep(0.5)
                 print(" " * 100 + "\r", end="")
                 sys.stdout.flush()
+            return
+
+        def ecb(e=None):
+            print('get error')
+            print(e)
+            return
+
+        for i in range(stock_count):
+            code = df[i][0]
+
+            if code in ignored_stock_list:
+                continue
+            # 使用异步进程池处理
+            # 每股的处理代码在这里
+
+
+            pool.apply_async(func=process_single_shot, args=(code, the_date, 'skip'),
+                             callback=callback, error_callback=ecb)
+
+        pool.close()
+        pool.join()
 
     s.close()
     return
 
 
+proc_db = None
+
+
 def process_single_shot(code, date, dup="skip", db=None):
     own_session = False
-    if db is None:
+    global proc_db
+    if proc_db is not None:
+        db = proc_db
+    elif db is None:
         session = sessionmaker()
         session.configure(bind=config.DB_CONN)
         db = session()
+        proc_db = db
         own_session = True
 
     # 每股的处理代码在这里
@@ -689,4 +720,4 @@ def process_single_shot(code, date, dup="skip", db=None):
 
     if own_session == True:
         db.close()
-    return
+    return code
