@@ -23,7 +23,7 @@ import numpy as np
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC import Model_CNN_NDC as Model
 
-data_ratio = [0.7, 0.2, 0.1]
+data_ratio = [0.85, 0.1, 0.15]
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
