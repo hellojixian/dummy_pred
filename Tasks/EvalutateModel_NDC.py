@@ -38,8 +38,8 @@ model = Model()
 
 results = provider.fetch_resultset(result_cols)
 data = provider.fetch_dataset(data_segment)
-results = results[result_cols]
-real_results = results.as_matrix()[:, 0]
+real_results = results[result_cols]
+real_results = real_results.as_matrix()[:, 0]
 
 # data = data[:1000]
 # real_results = results[:1000]
@@ -48,9 +48,9 @@ print("Evaluating {} samples".format(data.shape[0]))
 pred_results = model.predict(data)
 pred_results = pred_results.reshape(1, -1)
 
-pd.set_option('display.max_rows', results.shape[0])
 results = pd.DataFrame(results)
 results['prediction'] = pd.Series(pred_results[0].tolist())
-results[['diff']] = results[[result_cols[0]]] - results[['prediction']]
+results['diff'] = results[result_cols[0]] - results['prediction']
 
-print(results[:5])
+pd.set_option('display.max_rows', results.shape[0])
+print(results)
