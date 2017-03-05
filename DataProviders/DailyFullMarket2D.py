@@ -63,7 +63,6 @@ class DailyFullMarket2D:
 
     def _data_slice(self, date, type):
         start_time, end_time = date, date
-
         if type == 'today_full':
             end_time = date + timedelta(days=1)
             length = 48
@@ -98,7 +97,8 @@ class DailyFullMarket2D:
             ), end="")
             sys.stdout.flush()
             code = record['code']
-            date = record['date']
+            date = datetime.strptime(str(record['date']), "%Y-%m-%d")
+
             start_time, end_time, length = self._data_slice(date, slice_type)
             rs = self.db.execute(
                 "SELECT * "
@@ -190,7 +190,7 @@ class DailyFullMarket2D:
         self._resultset = df
         return self._resultset
 
-    def balance_result(self, column, low, high,step, samples):
+    def balance_result(self, column, low, high, step, samples):
         if self._resultset is None:
             return
 
@@ -200,7 +200,7 @@ class DailyFullMarket2D:
         for i in range(len(dist) - 1):
             low = dist[i]
             high = dist[i + 1]
-            test = results.query("{0}>{1} and {0}<{2}".format(column,low, high))
+            test = results.query("{0}>{1} and {0}<{2}".format(column, low, high))
             balanced_results.append(test[:samples])
         balanced_results = np.vstack(balanced_results)
         balanced_results = pd.DataFrame(balanced_results)
