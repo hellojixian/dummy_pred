@@ -201,8 +201,11 @@ class DailyFullMarket2D:
             low = dist[i]
             high = dist[i + 1]
             test = results.query("{0}>{1} and {0}<{2}".format(column, low, high))
-            random_index = random.sample(test.index.tolist(), samples)
-            balanced_results.append(test.loc[random_index])
+            if test.shape[0] > samples:
+                random_index = random.sample(test.index.tolist(), samples)
+                balanced_results.append(test.loc[random_index])
+            else:
+                balanced_results.append(test)
         balanced_results = np.vstack(balanced_results)
         balanced_results = pd.DataFrame(balanced_results)
         balanced_results.columns = results.columns

@@ -55,3 +55,7 @@ results['diff'] = results[result_cols[0]] - results['prediction']
 
 pd.set_option('display.max_rows', results.shape[0])
 print(results)
+
+
+print("mean absolute error: {}".format(np.mean(results['diff'])))
+print("max absolute error: {}".format(np.max(results['diff'])))

@@ -881,7 +881,7 @@ class Model_CNN_NDC_relu:
         sgd = SGD(lr=1e-6, decay=1e-7, momentum=0.5, nesterov=True)
 
         self._model.compile(optimizer='adadelta',  # adadelta
-                            loss='mse',
+                            loss=max_absolute_error,
                             metrics=['mse','mae',  max_absolute_error])
         return
 

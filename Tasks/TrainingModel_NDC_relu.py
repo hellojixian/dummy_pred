@@ -29,7 +29,7 @@ import numpy as np
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC_relu import Model_CNN_NDC_relu as Model
 
-low, high, step, samples = -4, 4, 1, 2600
+low, high, step, samples = -7, 7, 1, 3000
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
