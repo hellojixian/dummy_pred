@@ -51,7 +51,7 @@ count = data.shape[0]
 [training_data, training_result], \
 [validation_data, validation_result], \
 [test_data, test_result], \
-    = provider.balance_dataset([results, data], low, high, step, 100, 100)
+    = provider.balance_dataset([results, data], low, high, step, 250, 200)
 
 print("Training set size: {}\n"
       "Validation set size: {}\n"

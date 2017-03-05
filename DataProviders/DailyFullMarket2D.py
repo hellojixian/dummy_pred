@@ -224,12 +224,12 @@ class DailyFullMarket2D:
             result_piece = results.query("{0}>{1} and {0}<{2}".format('value', low, high))
             data_piece = data[result_piece.index]
 
-            training_set[0].append(result_piece[:-(validation_samples + test_samples)])
-            training_set[1].append(data_piece[:-(validation_samples + test_samples)])
-            validation_set[0].append(result_piece[(0-validation_samples + test_samples):test_samples])
-            validation_set[1].append(data_piece[(0-validation_samples + test_samples):test_samples])
-            test_set[0].append(result_piece[(0-test_samples):])
-            test_set[1].append(data_piece[(0-test_samples):])
+            training_set[0].append(result_piece[:(0 - validation_samples - test_samples)])
+            training_set[1].append(data_piece[:(0 - validation_samples - test_samples)])
+            validation_set[0].append(result_piece[(0 - validation_samples - test_samples):(0 - test_samples)])
+            validation_set[1].append(data_piece[(0 - validation_samples - test_samples):(0 - test_samples)])
+            test_set[0].append(result_piece[(0 - test_samples):])
+            test_set[1].append(data_piece[(0 - test_samples):])
 
         training_set[0] = np.vstack(training_set[0])
         validation_set[0] = np.vstack(validation_set[0])
