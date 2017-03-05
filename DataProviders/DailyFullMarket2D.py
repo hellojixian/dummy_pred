@@ -12,6 +12,7 @@ TABLE_NAME_5MIN_SCALED = "feature_scaled_stock_trading_5min"
 TABLE_NAME_5MIN_RESULT = "result_stock_trading_5min"
 TABLE_NAME_5MIN_EXTRACTED = "feature_extracted_stock_trading_5min"
 
+
 class DailyFullMarket2D:
     def __init__(self, start_date, end_date):
         self.start_date = start_date
@@ -107,7 +108,8 @@ class DailyFullMarket2D:
                     TABLE_NAME_5MIN_SCALED, code, start_time, end_time))
             df = pd.DataFrame(rs.fetchall())
             if df.empty:
-                print("code: {} {} is missing training data !!  -  deleted the result and data               ".format(code, date))
+                print("code: {} {} is missing training data !!  -  deleted the result and data               ".format(
+                    code, date))
                 self.db.execute(
                     "DELETE "
                     "FROM {} "
@@ -121,7 +123,7 @@ class DailyFullMarket2D:
                     "FROM {} "
                     "WHERE `code`='{}' AND `time`>'{}' AND `time`<'{}' "
                     "".format(
-                        TABLE_NAME_5MIN_EXTRACTED, code, date,date+timedelta(days=1)))
+                        TABLE_NAME_5MIN_EXTRACTED, code, date, date + timedelta(days=1)))
                 self.db.commit()
 
                 self.db.execute(
@@ -145,7 +147,7 @@ class DailyFullMarket2D:
                     "FROM {} "
                     "WHERE `code`='{}' AND `time`>'{}' AND `time`<'{}' "
                     "".format(
-                        TABLE_NAME_5MIN_SCALED, code, date, date+timedelta(days=1)))
+                        TABLE_NAME_5MIN_SCALED, code, date, date + timedelta(days=1)))
                 self.db.commit()
 
         print("")
@@ -159,7 +161,7 @@ class DailyFullMarket2D:
         h5f.close()
         return self._dataset
 
-    def fetch_resultset(self, columns=[]):
+    def fetch_resultset(self, columns=[], cond="True"):
         if self._resultset is not None:
             return self._resultset
 
@@ -178,12 +180,31 @@ class DailyFullMarket2D:
         rs = self.db.execute(
             "SELECT {} "
             "FROM {} "
-            "WHERE `date`>='{}' AND `date`<='{}' "
+            "WHERE `date`>='{}' AND `date`<='{}' AND ( {} )"
             "ORDER BY `date` ASC".format(
-                columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date))
+                columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date, cond))
         df = pd.DataFrame(rs.fetchall())
         df.columns = columns_list
         df.to_csv(path_or_buf=cache_file, index=False)
 
         self._resultset = df
+        return self._resultset
+
+    def balance_result(self, column, low, high,step, samples):
+        if self._resultset is None:
+            return
+
+        results = self._resultset
+        balanced_results = []
+        dist = np.arange(low, high + step, step)
+        for i in range(len(dist) - 1):
+            low = dist[i]
+            high = dist[i + 1]
+            test = results.query("{0}>{1} and {0}<{2}".format(column,low, high))
+            balanced_results.append(test[:samples])
+        balanced_results = np.vstack(balanced_results)
+        balanced_results = pd.DataFrame(balanced_results)
+        balanced_results.columns = results.columns
+
+        self._resultset = balanced_results
         return self._resultset

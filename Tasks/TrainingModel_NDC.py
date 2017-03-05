@@ -25,40 +25,44 @@ else:
     start_date = datetime.datetime.strptime(str(sys.argv[1]), "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(str(sys.argv[2]), "%Y-%m-%d").date()
 
-
 import numpy as np
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC import Model_CNN_NDC as Model
 
-data_ratio = [0.85, 0.1, 0.15]
+low, high, step, samples = -4, 4, 1, 2600
 data_segment = 'today_full'
 result_cols = ['nextday_close']
+cond = "`nextday_close` < 8 AND `nextday_close` >-8"
 
 provider = Provider(start_date, end_date)
 model = Model()
 
-results = provider.fetch_resultset(result_cols)
+results = provider.fetch_resultset(result_cols, cond)
+results = provider.balance_result(result_cols[0], low, high, step, samples)
 results = results[result_cols].as_matrix()
 results = results[:, 0]
 data = provider.fetch_dataset(data_segment)
 
-
-# data = data[:1000]
-# results = results[:1000]
+# results = results * 0.1
+# data = data[:10000]
+# results = results[:10000]
 
 count = data.shape[0]
 
-splitter = round(count * data_ratio[0])
-training_set = data[:splitter]
-training_result = results[:splitter]
+training_set = data[:-4000]
+training_result = results[:-4000]
 
-splitter = round(count * data_ratio[1])
-validation_set = data[:splitter]
-validation_result = results[:splitter]
+validation_set = data[-4000:-2000]
+validation_result = results[-4000:-2000]
 
-splitter = round(count * data_ratio[2])
-test_set = data[:splitter]
-test_result = results[:splitter]
+test_set = data[-2000:]
+test_result = results[-2000:]
+
+print("Training set size: {}\n"
+      "Validation set size: {}\n"
+      "Test set size: {}\n".format(training_set.shape[0],
+                                   validation_set.shape[0],
+                                   test_set.shape[0]))
 
 model.train([training_set, training_result],
             [validation_set, validation_result],

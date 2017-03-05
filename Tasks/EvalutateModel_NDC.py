@@ -50,6 +50,7 @@ pred_results = pred_results.reshape(1, -1)
 
 results = pd.DataFrame(results)
 results['prediction'] = pd.Series(pred_results[0].tolist())
+# results['prediction'] *= 10
 results['diff'] = results[result_cols[0]] - results['prediction']
 
 pd.set_option('display.max_rows', results.shape[0])
