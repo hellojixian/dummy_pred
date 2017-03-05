@@ -32,12 +32,11 @@ from Models.ModelCNN_NDC import Model_CNN_NDC as Model
 low, high, step, samples = -4, 4, 1, 2600
 data_segment = 'today_full'
 result_cols = ['nextday_close']
-cond = "`nextday_close` < 8 AND `nextday_close` >-8"
 
 provider = Provider(start_date, end_date)
 model = Model()
 
-results = provider.fetch_resultset(result_cols, cond)
+results = provider.fetch_resultset(result_cols)
 results = provider.balance_result(result_cols[0], low, high, step, samples)
 results = results[result_cols].as_matrix()
 results = results[:, 0]
@@ -49,21 +48,17 @@ data = provider.fetch_dataset(data_segment)
 
 count = data.shape[0]
 
-training_set = data[:-4000]
-training_result = results[:-4000]
-
-validation_set = data[-4000:-2000]
-validation_result = results[-4000:-2000]
-
-test_set = data[-2000:]
-test_result = results[-2000:]
+[training_data, training_result], \
+[validation_data, validation_result], \
+[test_data, test_result], \
+    = provider.balance_dataset([results, data], low, high, step, 100, 100)
 
 print("Training set size: {}\n"
       "Validation set size: {}\n"
-      "Test set size: {}\n".format(training_set.shape[0],
-                                   validation_set.shape[0],
-                                   test_set.shape[0]))
+      "Test set size: {}\n".format(training_data.shape[0],
+                                   validation_data.shape[0],
+                                   test_data.shape[0]))
 
-model.train([training_set, training_result],
-            [validation_set, validation_result],
-            [test_set, test_result])
+model.train([training_data, training_result],
+            [validation_data, validation_result],
+            [test_data, test_result])

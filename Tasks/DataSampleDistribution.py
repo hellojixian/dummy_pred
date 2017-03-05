@@ -27,7 +27,7 @@ provider = Provider(start_date, end_date)
 
 results = provider.fetch_resultset(result_cols)
 low, high, step, samples = -4, 4, 1, 2600
-results = provider.balance_result(result_cols[0], low, high, step, samples)
+# results = provider.balance_result(result_cols[0], low, high, step, samples)
 results = results[result_cols].as_matrix()
 results = results[:, 0]
 

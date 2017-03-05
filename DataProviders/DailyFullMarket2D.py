@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, time
 from sqlalchemy.orm import sessionmaker
-import os, sys
+import os, sys, random
 import Common.config as config
 import numpy as np
 import pandas as pd
@@ -201,10 +201,61 @@ class DailyFullMarket2D:
             low = dist[i]
             high = dist[i + 1]
             test = results.query("{0}>{1} and {0}<{2}".format(column, low, high))
-            balanced_results.append(test[:samples])
+            random_index = random.sample(test.index.tolist(), samples)
+            balanced_results.append(test.loc[random_index])
         balanced_results = np.vstack(balanced_results)
         balanced_results = pd.DataFrame(balanced_results)
         balanced_results.columns = results.columns
 
         self._resultset = balanced_results
         return self._resultset
+
+    def balance_dataset(self, dataset, low, high, step, validation_samples, test_samples):
+        results = pd.DataFrame(dataset[0])
+        data = dataset[1]
+        dist = np.arange(low, high + step, step)
+        training_set, validation_set, test_set = [[], []], [[], []], [[], []]
+        results.columns = ['value']
+
+        for i in range(len(dist) - 1):
+            low = dist[i]
+            high = dist[i + 1]
+
+            result_piece = results.query("{0}>{1} and {0}<{2}".format('value', low, high))
+            data_piece = data[result_piece.index]
+
+            training_set[0].append(result_piece[:-(validation_samples + test_samples)])
+            training_set[1].append(data_piece[:-(validation_samples + test_samples)])
+            validation_set[0].append(result_piece[(0-validation_samples + test_samples):test_samples])
+            validation_set[1].append(data_piece[(0-validation_samples + test_samples):test_samples])
+            test_set[0].append(result_piece[(0-test_samples):])
+            test_set[1].append(data_piece[(0-test_samples):])
+
+        training_set[0] = np.vstack(training_set[0])
+        validation_set[0] = np.vstack(validation_set[0])
+        test_set[0] = np.vstack(test_set[0])
+
+        training_set[1] = np.vstack(training_set[1])
+        validation_set[1] = np.vstack(validation_set[1])
+        test_set[1] = np.vstack(test_set[1])
+
+        # print("-" * 20)
+        # print(training_set[0].shape)
+        # print(training_set[1].shape)
+        #
+        # print(validation_set[0].shape)
+        # print(validation_set[1].shape)
+        #
+        # print(test_set[0].shape)
+        # print(test_set[1].shape)
+
+        training_result = training_set[0]
+        training_data = training_set[1]
+        validation_result = validation_set[0]
+        validation_data = validation_set[1]
+        test_result = test_set[0]
+        test_data = test_set[1]
+
+        return [training_data, training_result], \
+               [validation_data, validation_result], \
+               [test_data, test_result]
