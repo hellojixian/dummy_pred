@@ -14,9 +14,10 @@ TABLE_NAME_5MIN_EXTRACTED = "feature_extracted_stock_trading_5min"
 
 
 class DailyFullMarket2D:
-    def __init__(self, start_date, end_date):
+    def __init__(self, start_date, end_date, code_list=[]):
         self.start_date = start_date
         self.end_date = end_date
+        self.code_list = code_list
         self._shifted_date = None
         self._dataset = None
         self._resultset = None
@@ -177,13 +178,23 @@ class DailyFullMarket2D:
         columns_list = ['code', 'date'] + columns
         columns_str = '`' + "`,`".join(columns_list) + '`'
 
-        rs = self.db.execute(
-            "SELECT {} "
-            "FROM {} "
-            "WHERE `date`>='{}' AND `date`<='{}' AND ( {} )"
-            "ORDER BY `date` ASC".format(
-                columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date, cond))
-        df = pd.DataFrame(rs.fetchall())
+        code_query = ""
+        if len(self.code_list) > 0:
+            code_str = "'" + "','".join(self.code_list) + "'"
+            code_query = "AND `code` in ({})".format(code_str)
+
+        sql = "SELECT {} " \
+              "FROM {} " \
+              "WHERE `date`>='{}' AND `date`<='{}' AND ( {} ) {} " \
+              "ORDER BY `date` ASC".format(
+            columns_str, TABLE_NAME_5MIN_RESULT, shifted_start_date, self.end_date, cond, code_query)
+
+        rs = self.db.execute(sql)
+        # print(sql)
+        res = rs.fetchall()
+        df = pd.DataFrame(res)
+
+        # print(df.head(5))
         df.columns = columns_list
         df.to_csv(path_or_buf=cache_file, index=False)
 
@@ -207,18 +218,24 @@ class DailyFullMarket2D:
             else:
                 balanced_results.append(test)
         balanced_results = np.vstack(balanced_results)
+        # 在这里洗牌
         balanced_results = pd.DataFrame(balanced_results)
-        balanced_results.columns = results.columns
+        random_index = np.random.choice(balanced_results.index.tolist(), size=balanced_results.shape[0], replace=False)
 
-        self._resultset = balanced_results
+        rand_balanced_results = balanced_results.loc[random_index]
+        rand_balanced_results.columns = results.columns
+
+        # print(rand_balanced_results.head(100))
+        self._resultset = rand_balanced_results
         return self._resultset
 
-    def balance_dataset(self, dataset, low, high, step, validation_samples, test_samples):
+    def balance_dataset(self, dataset, low, high, step, validation_samples_ratio, test_samples_ratio):
         results = pd.DataFrame(dataset[0])
         data = dataset[1]
         dist = np.arange(low, high + step, step)
         training_set, validation_set, test_set = [[], []], [[], []], [[], []]
         results.columns = ['value']
+
 
         for i in range(len(dist) - 1):
             low = dist[i]
@@ -226,6 +243,10 @@ class DailyFullMarket2D:
 
             result_piece = results.query("{0}>{1} and {0}<{2}".format('value', low, high))
             data_piece = data[result_piece.index]
+
+            validation_samples = int(round(data_piece.shape[0] * validation_samples_ratio))
+            test_samples = int(round(data_piece.shape[0] * test_samples_ratio))
+            # print("v:{} t:{}".format(validation_samples, test_samples))
 
             training_set[0].append(result_piece[:(0 - validation_samples - test_samples)])
             training_set[1].append(data_piece[:(0 - validation_samples - test_samples)])

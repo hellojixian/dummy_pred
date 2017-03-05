@@ -27,6 +27,9 @@ else:
     end_date = datetime.datetime.strptime(str(sys.argv[2]), "%Y-%m-%d").date()
 
 import numpy as np
+import tushare as ts
+
+
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelCNN_NDC_relu import Model_CNN_NDC_relu as Model
 
@@ -56,6 +59,11 @@ results['diff'] = results[result_cols[0]] - results['prediction']
 pd.set_option('display.max_rows', results.shape[0])
 print(results)
 
+# print("Real:")
+# print("mean absolute error: {}".format(np.mean(np.abs(results['diff']))))
+# print("max absolute error: {}".format(np.max(results['diff'])))
+#
 
-print("mean absolute error: {}".format(np.mean(results['diff'])))
+print("Prediction:")
+print("mean absolute error: {}".format(np.mean(np.abs(results['diff']))))
 print("max absolute error: {}".format(np.max(results['diff'])))

@@ -26,7 +26,7 @@ result_cols = ['nextday_close']
 provider = Provider(start_date, end_date)
 
 results = provider.fetch_resultset(result_cols)
-low, high, step, samples = -4, 4, 1, 2600
+low, high, step, samples = -7, 7, 1, 2600
 # results = provider.balance_result(result_cols[0], low, high, step, samples)
 results = results[result_cols].as_matrix()
 results = results[:, 0]
@@ -58,3 +58,4 @@ labels = ax.get_xticklabels()
 plt.setp(labels, rotation=90, fontsize=10)
 plt.tight_layout()
 plt.show()
+

@@ -52,7 +52,7 @@ for code in raw_stock_list:
             stock_list.append("sz" + code)
 
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
-from Models.ModelCNN_NDC_relu import Model_CNN_NDC_relu as Model
+from Models.ModelCNN_NDC_regression import Model_CNN_NDC as Model
 
 low, high, step, samples = -10, 10, 1, 2000
 data_segment = 'today_full'

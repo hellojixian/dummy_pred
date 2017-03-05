@@ -14,9 +14,9 @@ import os
 from DataTransform.Transform5M import Transform5M as t5m
 
 
-class Model_CNN_NDC_relu:
+class Model_CNN_NDC:
     def __init__(self, result_min, result_max):
-        name = "Model_CNN_NDC_relu"
+        name = "Model_NDC_regression"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
@@ -810,12 +810,12 @@ class Model_CNN_NDC_relu:
             change_model, amp_model, wr_model, mi_model, oscv_model, dma_model, abr_model,
             mdi_model, asi_model, macd_model, psy_model, emv_model, wvad_model
         ]
-        # input_models = [
-        #     price_vec_model, price_change_model, ema_model,
-        #     bias_model, boll_model, macd_model,
-        #     vol_model, cci_model, kdj_model,
-        #     change_model, amp_model
-        # ]
+        input_models = [
+            price_vec_model, price_change_model, ema_model,
+            bias_model, boll_model, macd_model,
+            vol_model, cci_model, kdj_model,
+            change_model, amp_model
+        ]
 
 
 
@@ -872,10 +872,8 @@ class Model_CNN_NDC_relu:
                   name="dnn_dense_4"),
             Dropout(0.2),
             BatchNormalization(),
-            Activation('relu'),
-
-            Dense(self.result_categores),
-            Activation('softmax')
+            Activation('tanh'),
+            Dense(1),
         ])
 
         print("Network output layout")
@@ -912,9 +910,10 @@ class Model_CNN_NDC_relu:
         rmsprop = RMSprop(lr=1e-9, rho=0.7, epsilon=1e-4, decay=1e-10)
         sgd = SGD(lr=1e-6, decay=1e-7, momentum=0.5, nesterov=True)
 
+        # loss, mae, max_ae, active, max, min =
         self._model.compile(optimizer='adadelta',  # adadelta
-                            loss='categorical_crossentropy',
-                            metrics=['accuracy'])
+                            loss='mse',
+                            metrics=['mae', max_absolute_error, active, max_pred, min_pred])
         return
 
     def _transform_inputs(self, input):
@@ -952,12 +951,12 @@ class Model_CNN_NDC_relu:
             mdi_in, asi_in, macd_in, psy_in, emv_in, wvad_in
         ]
 
-        # input = [
-        #     price_vec_in, price_change_in, ema_in,
-        #     bias_in, boll_in, macd_in,
-        #     vol_in, cci_in, kdj_in,
-        #     change_in, amp_in
-        # ]
+        input = [
+            price_vec_in, price_change_in, ema_in,
+            bias_in, boll_in, macd_in,
+            vol_in, cci_in, kdj_in,
+            change_in, amp_in
+        ]
         return input
 
     def data_features(self):
@@ -967,13 +966,12 @@ class Model_CNN_NDC_relu:
         return
 
     def scale_result(self, dataset):
-        # dataset[:, 0] = (dataset[:, 0] - self.result_min) / (self.result_max - self.result_min)
-        # dataset[:, 0] *= 10
+
         new_dataset = np.zeros((dataset.shape[0], self.result_categores)).astype(np.int8)
         for i in range(dataset.shape[0]):
             value = dataset[i, 0]
-            classes = np.linspace(self.result_min, self.result_max, self.result_categores+1)
-            for cls_i in range(len(classes)-1):
+            classes = np.linspace(self.result_min, self.result_max, self.result_categores + 1)
+            for cls_i in range(len(classes) - 1):
                 low = classes[cls_i]
                 high = classes[cls_i + 1]
                 # print(low, high, value)
@@ -982,14 +980,18 @@ class Model_CNN_NDC_relu:
             value_c = np_utils.to_categorical(v, self.result_categores)
             new_dataset[i] = value_c
 
+        # only for verify
         print("{0} Samples distributions: ".format(new_dataset.shape[0]))
         print(np.sum(new_dataset, axis=0))
-        return new_dataset
+
+        dataset[:, 0] = (dataset[:, 0] - self.result_min) / (self.result_max - self.result_min)
+        # dataset[:, 0] *= 10
+        return dataset
 
     def rev_scale_result(self, dataset):
 
         # dataset[:, 0] *= 0.1
-        # dataset[:, 0] = dataset[:, 0] * (self.result_max - self.result_min) + self.result_min
+        dataset[:, 0] = dataset[:, 0] * (self.result_max - self.result_min) + self.result_min
         return dataset
 
     def train(self, training_set, validation_set, test_set):
@@ -1034,12 +1036,12 @@ class Model_CNN_NDC_relu:
                             )
 
             print('\nTesting ------------')
-            loss, acc = self._model.evaluate(X_test, y_test, batch_size=batch_size)
+            loss, mae, max_ae, active, max, min = self._model.evaluate(X_test, y_test, batch_size=batch_size)
 
             print('\n\nloss: ', loss)
-            print('test acc: ', acc)
-            # print('test mean_absolute_error: ', mae)
-            # print('test act: {}\tmax: {}\tmin: {} '.format(act, max, min))
+            print('test max_absolute_error: ', max_ae)
+            print('test mean_absolute_error: ', mae)
+            print('test act: {}\tmax: {}\tmin: {} '.format(active, max, min))
 
             # self._model.save(self._model_file)
             self._model.save_weights(self._weight_file)
