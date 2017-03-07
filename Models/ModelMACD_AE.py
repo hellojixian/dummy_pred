@@ -6,57 +6,33 @@ from keras.models import load_model
 from keras.regularizers import l1l2, activity_l1l2
 import pandas as pd
 import numpy as np
-from keras.utils import np_utils
-import keras
 import Common.config as config
-import os
+import os,time
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 from DataTransform.Transform5M import Transform5M as t5m
 
 
-class Model_NDC:
-    def __init__(self, result_min, result_max):
-        name = "Model_NDC_AUTOENC"
+class ModelMACD:
+    def __init__(self):
+        name = "Model_MACD"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
+
+        self._encoder_file = os.path.join(config.MODEL_DIR, name + '_encoder.h5')
         self._encoder_weight_file = os.path.join(config.MODEL_DIR, name + '_encoder_weight.h5')
 
         input_data = Input(shape=(144,))
-        # encoded = BatchNormalization()(input_data)
-        encoded = Dense(80, activation='relu')(input_data)
-        encoded = Dense(40, activation='relu')(encoded)
-        encoded = Dense(20, activation='relu')(encoded)
+        encoded = Dense(80, activation='relu', name="encoder_1")(input_data)
+        encoded = Dense(40, activation='relu', name="encoder_2")(encoded)
+        encoded = Dense(20, activation='relu', name="encoder_3")(encoded)
 
         encoder_output = Dense(2)(encoded)
-        decoded = Dense(20, activation='relu')(encoder_output)
-        decoded = Dense(40, activation='relu')(decoded)
-        decoded = Dense(80, activation='relu')(decoded)
-        decoded = Dense(144, activation='tanh')(decoded)
-
-        # input_data = Input(shape=(1,48,4))
-        # x = Convolution2D(16, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(input_data)
-        # x = Convolution2D(8, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(x)
-        # x = Convolution2D(8, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(x)
-        # x = Flatten()(x)
-        # x = BatchNormalization()(x)
-        # x = Dense(128, activation='relu')(x)
-        # x = Dense(64, activation='relu')(x)
-        # x = Dense(32, activation='relu')(x)
-        # x = Dense(16, activation='relu')(x)
-        #
-        # encoder_output = Dense(2)(x)
-        #
-        # x = Dense(16, activation='relu')(encoder_output)
-        # x = Dense(32, activation='relu')(x)
-        # x = Dense(64, activation='relu')(x)
-        # x = Dense(128, activation='relu')(x)
-        # x = Dense(288, activation='tanh')(x)
-        #
-        # x = Convolution2D(8, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(x)
-        # x = Convolution2D(8, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(x)
-        # x = Convolution2D(16, 3, 3, activation='relu', border_mode='same',dim_ordering='th')(x)
-        # decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same',dim_ordering='th')(x)
+        decoded = Dense(20, activation='relu', name="decoder_1")(encoder_output)
+        decoded = Dense(40, activation='relu', name="decoder_2")(decoded)
+        decoded = Dense(80, activation='relu', name="decoder_3")(decoded)
+        decoded = Dense(144, activation='relu', name="output")(decoded)
 
         self._model = Model(input=input_data, output=decoded)
         self.encoder = Model(input=input_data, output=encoder_output)
@@ -65,13 +41,9 @@ class Model_NDC:
         for layer in self._model.layers:
             print(layer.output_shape)
         print("\n\n")
-
-        rmsprop = RMSprop(lr=1e-9, rho=0.7, epsilon=1e-4, decay=1e-10)
-        sgd = SGD(lr=1e-6, decay=1e-7, momentum=0.5, nesterov=True)
-
-        # self._model.compile(optimizer='adadelta',  # adadelta
-        #                     loss='categorical_crossentropy',
-        #                     metrics=['accuracy'])
+        #
+        # rmsprop = RMSprop(lr=1e-9, rho=0.7, epsilon=1e-4, decay=1e-10)
+        # sgd = SGD(lr=1e-6, decay=1e-7, momentum=0.5, nesterov=True)
 
         import keras.backend as K
         def mme(y_true, y_pred):
@@ -79,15 +51,11 @@ class Model_NDC:
 
         self._model.compile(optimizer='adadelta',  # adadelta
                             loss='mse',  # 'binary_crossentropy',
-                            metrics=['mae', mme])
+                            metrics=['mae',mme])
 
         if os.path.isfile(self._weight_file):
-            self._model.load_weights(self._weight_file)
-        # # self.encoder.load_weights(self._encoder_weight_file)
-        #     self._model.load_weights(self._weight_file)
-        #     print("weight loaded")
-        # except Exception:
-        #     pass
+            self._model.load_weights(self._weight_file, by_name=True)
+
         return
 
     def _transform_inputs(self, input):
@@ -139,14 +107,12 @@ class Model_NDC:
         input = np.concatenate(input, axis=2)
         print(input.shape)
         input = input.reshape(input.shape[0], -1)
-        print(input.shape)
+
+        v_max = 5
+        v_min = -5
+        input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
         return input
 
-    def data_features(self):
-        features = t5m.features()
-        for i in range(len(features)):
-            print("{} - {}".format(i, features[i]))
-        return
 
     def train(self, training_set, validation_set, test_set):
         batch_size = 32
@@ -158,68 +124,63 @@ class Model_NDC:
         X_validation = self._transform_inputs(X_validation)
         X_test = self._transform_inputs(X_test)
 
-        y_train = self.scale_result(y_train)
-        y_validation = self.scale_result(y_validation)
         y_test = self.scale_result(y_test)
 
-        pd.set_option('display.max_rows', len(y_validation))
+        data = self.encoder.predict(X_test)
 
         print('Training ------------')
-        loss, accuracy, sh = 100, 0, 0
-        # Another way to train the model
-        retry = 0
-        # while accuracy <= 0.98:
-        self._model.fit(X_train, X_train,
-                        nb_epoch=1,
-                        batch_size=1000,
-                        verbose=1,
-                        validation_data=(X_validation, X_validation),
-                        shuffle=True
-                        )
-
-        print('\nTesting ------------')
-        loss = self._model.evaluate(X_test, X_test, batch_size=batch_size)
-
-        print('\n\nloss: ', loss)
-
-        self._model.save_weights(self._weight_file)
-        print("model saved\n\n")
-
-        encoded_data = self.encoder.predict(X_test)
-        # plt.scatter(encoded_data[:, 0], encoded_data[:, 1], c=y_test,cmap=plt.cm.jet)
-        # plt.colorbar()
-        # plt.show()
-
-        fig, ax = plt.subplots()
-        s = ax.scatter(x=encoded_data[:, 0], y=encoded_data[:, 1], c=y_test, cmap=plt.cm.jet)
+        value_dropout_count = 100
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plt.subplots_adjust(hspace=0.001,
+                            wspace=0.01,
+                            left=0.08,
+                            right=1,
+                            top=0.96,
+                            bottom=0.06)
+        ax.set_xlim(np.sort(data[:, 0])[(value_dropout_count - 1)],
+                    np.sort(data[:, 0])[(-value_dropout_count)])
+        ax.set_ylim(np.sort(data[:, 1])[(value_dropout_count - 1)],
+                    np.sort(data[:, 1])[(-value_dropout_count)])
+        s = ax.scatter(x=data[:, 0], y=data[:, 1], c=y_test, marker='.', cmap=plt.cm.jet)
         plt.colorbar(s)
 
-        import time
         def animate(i):
             self._model.fit(X_train, X_train,
-                            nb_epoch=1,
-                            batch_size=1000,
+                            nb_epoch=20,
+                            batch_size=64,
                             verbose=1,
                             validation_data=(X_validation, X_validation),
                             shuffle=True
                             )
+
+            print('\nTesting ------------')
+            loss = self._model.evaluate(X_test, X_test, batch_size=batch_size)
+            print('\n\nloss: ', loss[0])
+            print('mae: ', loss[1])
+            print('mme: ', loss[2])
+            print('--'*10)
+
             if i % 5 == 0:
                 self._model.save_weights(self._weight_file)
-                # self.encoder.save_weights(self._encoder_weight_file)
                 print("model saved\n\n")
+                print('--' * 10)
 
-            data = self.encoder.predict(X_test)
+            data = self.encoder.predict(X_validation)
 
             s.set_offsets(data)
-            ax.set_xlim(np.min(data[:, 0]), np.max(data[:, 0]) * 0.8)
-            ax.set_ylim(np.min(data[:, 1]), np.max(data[:, 1]) * 0.8)
+            ax.set_xlim(np.sort(data[:, 0])[(value_dropout_count - 1)],
+                        np.sort(data[:, 0])[(-value_dropout_count)])
+            ax.set_ylim(np.sort(data[:, 1])[(value_dropout_count - 1)],
+                        np.sort(data[:, 1])[(-value_dropout_count)])
+            # ax.set_xlim(np.sort(data[:, 0])[(value_dropout_count - 1)],
+            #             8000)
+            # ax.set_ylim(np.sort(data[:, 1])[(value_dropout_count - 1)],
+            #             6000)
             time.sleep(0.5)
             return s,
 
-        import matplotlib.animation as animation
-        ani = animation.FuncAnimation(fig, animate, np.arange(1, 200))
-        # ax.set_xlim(-60, -0)
-        # ax.set_ylim(-10, 20)
+        ani = animation.FuncAnimation(fig, animate, np.arange(1, 2000))
+
         plt.show()
 
     def scale_result(self, dataset):

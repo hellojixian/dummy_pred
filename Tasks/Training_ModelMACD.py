@@ -52,14 +52,14 @@ for code in raw_stock_list:
             stock_list.append("sz" + code)
 
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
-from Models.ModelDNN_NDC import Model_NDC as Model
+from Models.ModelMACD_AE import ModelMACD as Model
 
-low, high, step, samples = -9, 9, 1, 2000
+low, high, step, samples = -9.5, 9.5, 1, 3500
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
-provider = Provider(start_date, end_date,stock_list)
-model = Model(low, high)
+provider = Provider(start_date, end_date,[])
+model = Model()
 
 cond = " `{0}` > {1} AND `{0}` < {2} ".format(result_cols[0], low, high)
 
@@ -79,8 +79,8 @@ count = data.shape[0]
 [validation_data, validation_result], \
 [test_data, test_result], \
     = provider.balance_dataset([results, data], low, high, step,
-                               validation_samples_ratio=0.01,
-                               test_samples_ratio=0.01)
+                               validation_samples_ratio=0.05,
+                               test_samples_ratio=0.05)
 
 print("Total data set size: {}\n"
       "Training set size: {}\n"
@@ -89,8 +89,8 @@ print("Total data set size: {}\n"
                                    validation_data.shape[0],
                                    test_data.shape[0]))
 
-print("training result max:{} min{}".format(np.max(test_data), np.min(test_data)))
+print("training result max:{} min:{}".format(round(np.max(training_result),2), round(np.min(training_result)),2))
 
-model.train([test_data, test_result],
-            [test_data, test_result],
+model.train([training_data, training_result],
+            [validation_data, validation_result],
             [test_data, test_result])

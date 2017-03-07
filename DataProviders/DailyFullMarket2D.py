@@ -236,6 +236,12 @@ class DailyFullMarket2D:
         training_set, validation_set, test_set = [[], []], [[], []], [[], []]
         results.columns = ['value']
 
+        if results.shape[0] != data.shape[0]:
+            print("Data size and result size is not matched !!")
+            print("result:",results.shape)
+            print("data:",data.shape)
+            print("-----"*10)
+            exit(0)
 
         for i in range(len(dist) - 1):
             low = dist[i]
