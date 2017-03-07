@@ -15,14 +15,14 @@ from DataTransform.Transform5M import Transform5M as t5m
 
 
 class Model_CNN_NDC_relu:
-    def __init__(self, result_min, result_max):
+    def __init__(self, result_min, result_max, categories):
         name = "Model_CNN_NDC_relu"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
         self.result_min = result_min
         self.result_max = result_max
-        self.result_categores = 7
+        self.result_categores = categories
 
         data_len = 48
         price_vec_dim = 4
@@ -972,8 +972,8 @@ class Model_CNN_NDC_relu:
         new_dataset = np.zeros((dataset.shape[0], self.result_categores)).astype(np.int8)
         for i in range(dataset.shape[0]):
             value = dataset[i, 0]
-            classes = np.linspace(self.result_min, self.result_max, self.result_categores+1)
-            for cls_i in range(len(classes)-1):
+            classes = np.linspace(self.result_min, self.result_max, self.result_categores + 1)
+            for cls_i in range(len(classes) - 1):
                 low = classes[cls_i]
                 high = classes[cls_i + 1]
                 # print(low, high, value)
@@ -1007,12 +1007,14 @@ class Model_CNN_NDC_relu:
         y_test = self.scale_result(y_test)
 
         pd.set_option('display.max_rows', len(y_validation))
-        # print(y_train[:100])
-        # print("-" * 100)
-        # print(y_validation)
-        # print("-" * 100)
-        # print(y_test)
-        # print("-" * 100)
+
+        print(y_train.shape)
+        print(np.random.choice(y_train[:, 0], size=30, replace=False))
+        print("-" * 30)
+        print(np.random.choice(y_validation[:, 0], size=30, replace=False))
+        print("-" * 30)
+        print(np.random.choice(y_test[:, 0], size=30, replace=False))
+        print("-" * 30)
 
         callbacks = [
             EarlyStopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mode='min')

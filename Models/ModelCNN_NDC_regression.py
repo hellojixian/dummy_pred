@@ -1,5 +1,5 @@
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization, Merge
+from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization, Merge, LSTM, GRU
 from keras.optimizers import SGD, RMSprop
 from keras.callbacks import EarlyStopping
 from keras.models import load_model
@@ -22,7 +22,7 @@ class Model_CNN_NDC:
 
         self.result_min = result_min
         self.result_max = result_max
-        self.result_categores = 7
+        self.result_categores = 5
 
         data_len = 48
         price_vec_dim = 4
@@ -58,7 +58,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_vec_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -67,7 +67,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_vec_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -76,7 +76,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_vec_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -89,7 +89,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_change_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -98,7 +98,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_change_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -107,7 +107,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="price_change_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -120,7 +120,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ma_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -129,7 +129,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ma_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -138,7 +138,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ma_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -151,7 +151,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ema_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -160,7 +160,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ema_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -169,7 +169,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="ema_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -182,7 +182,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="boll_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -191,7 +191,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="boll_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -200,7 +200,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="boll_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -213,7 +213,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="vol_conv_0"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(64, 8, 1, border_mode='valid',
@@ -222,7 +222,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="vol_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -231,7 +231,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="vol_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -240,7 +240,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="vol_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -253,7 +253,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="cci_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -262,7 +262,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="cci_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -271,7 +271,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="cci_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -284,7 +284,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="rsi_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -293,7 +293,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="rsi_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -302,7 +302,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="rsi_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -315,7 +315,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="kdj_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -324,7 +324,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="kdj_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -333,7 +333,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="kdj_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -346,7 +346,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="bias_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -355,7 +355,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="bias_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -364,7 +364,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="bias_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -377,7 +377,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="roc_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -386,7 +386,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="roc_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -395,7 +395,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="roc_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -408,7 +408,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="change_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -417,7 +417,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="change_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -426,7 +426,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="change_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -439,7 +439,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="amp_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -448,7 +448,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="amp_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -457,7 +457,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="amp_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -470,7 +470,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wr_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -479,7 +479,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wr_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -488,7 +488,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wr_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -501,7 +501,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mi_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -510,7 +510,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mi_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -519,7 +519,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mi_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -532,7 +532,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="oscv_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -541,7 +541,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="oscv_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -550,7 +550,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="oscv_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -563,7 +563,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="dma_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -572,7 +572,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="dma_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -581,7 +581,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="dma_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -594,7 +594,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="abr_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -603,7 +603,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="abr_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -612,7 +612,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="abr_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -625,7 +625,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mdi_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -634,7 +634,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mdi_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -643,7 +643,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="mdi_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -656,7 +656,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="asi_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -665,7 +665,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="asi_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -674,7 +674,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="asi_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -687,7 +687,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="macd_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -696,7 +696,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="macd_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -705,7 +705,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="macd_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -718,7 +718,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="psy_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -727,7 +727,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="psy_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -736,7 +736,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="psy_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -749,7 +749,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="emv_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -758,7 +758,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="emv_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -767,7 +767,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="emv_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -780,7 +780,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wvad_conv_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(32, 8, 1, border_mode='valid',
@@ -789,7 +789,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wvad_conv_2"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Convolution2D(16, 1, 1, border_mode='valid',
@@ -798,7 +798,7 @@ class Model_CNN_NDC:
                           # b_regularizer=l1l2(l1=0.01, l2=0.01),
                           # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                           name="wvad_conv_3"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
             Dropout(0.4),
             Flatten(),
@@ -810,9 +810,9 @@ class Model_CNN_NDC:
             change_model, amp_model, wr_model, mi_model, oscv_model, dma_model, abr_model,
             mdi_model, asi_model, macd_model, psy_model, emv_model, wvad_model
         ]
+
         input_models = [
             price_vec_model, price_change_model, ema_model,
-            bias_model, boll_model, macd_model,
             vol_model, cci_model, kdj_model,
             change_model, amp_model
         ]
@@ -824,57 +824,65 @@ class Model_CNN_NDC:
                   concat_axis=-1,
                   name="dnn_merge_1"),
 
-            # Dense(8192, input_dim=3552,
-            #       # W_regularizer=l1l2(l1=0.01, l2=0.01),
-            #       # b_regularizer=l1l2(l1=0.01, l2=0.01),
-            #       # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
-            #       name="dnn_dense_0_2"),
-            # # BatchNormalization(),
-            # Activation('relu'),
-            # Dropout(0.5),
+            Dense(4096, input_dim=3552,
+                  # W_regularizer=l1l2(l1=0.01, l2=0.01),
+                  # b_regularizer=l1l2(l1=0.01, l2=0.01),
+                  # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
+                  name="dnn_dense_0_2"),
+            # BatchNormalization(),
+            Activation('relu'),
+            Dropout(0.5),
 
-            Dense(4096,
+            Dense(1024,
                   # W_regularizer=l1l2(l1=0.01, l2=0.01),
                   # b_regularizer=l1l2(l1=0.01, l2=0.01),
                   # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                   name="dnn_dense_2_1"),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
-            Dropout(0.4),
-            Dense(512,
-                  # W_regularizer=l1l2(l1=0.01, l2=0.01),
-                  # b_regularizer=l1l2(l1=0.01, l2=0.01),
-                  # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
-                  name="dnn_dense_2"),
-            BatchNormalization(),
-            Activation('relu'),
-            Dropout(0.4),
+            # Dropout(0.4),
+            # Dense(1024,
+            #       # W_regularizer=l1l2(l1=0.01, l2=0.01),
+            #       # b_regularizer=l1l2(l1=0.01, l2=0.01),
+            #       # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
+            #       name="dnn_dense_2"),
+            # BatchNormalization(),
+            # Activation('linear'),
+            # Dropout(0.4),
             Dense(256,
                   # W_regularizer=l1l2(l1=0.01, l2=0.01),
                   # b_regularizer=l1l2(l1=0.01, l2=0.01),
                   # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                   name="dnn_dense_3"),
-            Dropout(0.4),
-            BatchNormalization(),
+            # Dropout(0.4),
+            # BatchNormalization(),
             Activation('relu'),
-            Dense(128,
-                  # W_regularizer=l1l2(l1=0.01, l2=0.01),
-                  # b_regularizer=l1l2(l1=0.01, l2=0.01),
-                  # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
-                  name="dnn_dense_3_2"),
-            Dropout(0.4),
+            # Dense(128,
+            #       # W_regularizer=l1l2(l1=0.01, l2=0.01),
+            #       # b_regularizer=l1l2(l1=0.01, l2=0.01),
+            #       # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
+            #       name="dnn_dense_3_2"),
+            # Dropout(0.4),
             BatchNormalization(),
-            Activation('relu'),
+            # Activation('linear'),
             Dense(32,
                   # W_regularizer=l1l2(l1=0.01, l2=0.01),
                   # b_regularizer=l1l2(l1=0.01, l2=0.01),
                   # activity_regularizer=activity_l1l2(l1=0.01, l2=0.01),
                   name="dnn_dense_4"),
-            Dropout(0.2),
+            # Dropout(0.2),
             BatchNormalization(),
-            Activation('tanh'),
-            Dense(1),
+            # Activation('tanh'),
+            # Dense(1),
+            Dense(self.result_categores),
+            Activation("softmax")
         ])
+
+        # self._model = Sequential([
+        #     LSTM(500, input_shape=(48, 74), name="rnn"),
+        #     Dense(self.result_categores),
+        #     Activation("softmax")
+        # ])
 
         print("Network output layout")
         for layer in self._model.layers:
@@ -910,13 +918,19 @@ class Model_CNN_NDC:
         rmsprop = RMSprop(lr=1e-9, rho=0.7, epsilon=1e-4, decay=1e-10)
         sgd = SGD(lr=1e-6, decay=1e-7, momentum=0.5, nesterov=True)
 
-        # loss, mae, max_ae, active, max, min =
         self._model.compile(optimizer='adadelta',  # adadelta
-                            loss='mse',
-                            metrics=['mae', max_absolute_error, active, max_pred, min_pred])
+                            loss='categorical_crossentropy',
+                            metrics=['accuracy'])
+
+        # loss, mae, max_ae, active, max, min =
+        # self._model.compile(optimizer='adadelta',  # adadelta
+        #                     loss='mse',
+        #                     metrics=['mae', max_absolute_error, active, max_pred, min_pred])
         return
 
     def _transform_inputs(self, input):
+        # input = input.reshape(input.shape[0],-1)
+        #
         input = input.reshape(input.shape[0], 1, input.shape[1], input.shape[2])
 
         price_vec_in = input[:, :, :, [0, 1, 2, 3]]
@@ -943,17 +957,16 @@ class Model_CNN_NDC:
         psy_in = input[:, :, :, [68, 69]]
         emv_in = input[:, :, :, [70, 71]]
         wvad_in = input[:, :, :, [72, 73]]
-
-        input = [
-            price_vec_in, price_change_in, ma_in, ema_in,
-            boll_in, vol_in, cci_in, rsi_in, kdj_in, bias_in, roc_in,
-            change_in, amp_in, wr_in, mi_in, oscv_in, dma_in, abr_in,
-            mdi_in, asi_in, macd_in, psy_in, emv_in, wvad_in
-        ]
-
+        #
+        # input = [
+        #     price_vec_in, price_change_in, ma_in, ema_in,
+        #     boll_in, vol_in, cci_in, rsi_in, kdj_in, bias_in, roc_in,
+        #     change_in, amp_in, wr_in, mi_in, oscv_in, dma_in, abr_in,
+        #     mdi_in, asi_in, macd_in, psy_in, emv_in, wvad_in
+        # ]
+        #
         input = [
             price_vec_in, price_change_in, ema_in,
-            bias_in, boll_in, macd_in,
             vol_in, cci_in, kdj_in,
             change_in, amp_in
         ]
@@ -984,14 +997,14 @@ class Model_CNN_NDC:
         print("{0} Samples distributions: ".format(new_dataset.shape[0]))
         print(np.sum(new_dataset, axis=0))
 
-        dataset[:, 0] = (dataset[:, 0] - self.result_min) / (self.result_max - self.result_min)
+        # dataset[:, 0] = (dataset[:, 0] - self.result_min) / (self.result_max - self.result_min)
         # dataset[:, 0] *= 10
-        return dataset
+        return new_dataset
 
     def rev_scale_result(self, dataset):
 
         # dataset[:, 0] *= 0.1
-        dataset[:, 0] = dataset[:, 0] * (self.result_max - self.result_min) + self.result_min
+        # dataset[:, 0] = dataset[:, 0] * (self.result_max - self.result_min) + self.result_min
         return dataset
 
     def train(self, training_set, validation_set, test_set):
@@ -1035,13 +1048,19 @@ class Model_CNN_NDC:
                             shuffle=True
                             )
 
-            print('\nTesting ------------')
-            loss, mae, max_ae, active, max, min = self._model.evaluate(X_test, y_test, batch_size=batch_size)
+            # print('\nTesting ------------')
+            # loss, mae, max_ae, active, max, min = self._model.evaluate(X_test, y_test, batch_size=batch_size)
+            #
+            # print('\n\nloss: ', loss)
+            # print('test max_absolute_error: ', max_ae)
+            # print('test mean_absolute_error: ', mae)
+            # print('test act: {}\tmax: {}\tmin: {} '.format(active, max, min))
+
+            loss, acc = self._model.evaluate(X_test, y_test, batch_size=batch_size)
 
             print('\n\nloss: ', loss)
-            print('test max_absolute_error: ', max_ae)
-            print('test mean_absolute_error: ', mae)
-            print('test act: {}\tmax: {}\tmin: {} '.format(active, max, min))
+            print('test acc: ', acc)
+
 
             # self._model.save(self._model_file)
             self._model.save_weights(self._weight_file)

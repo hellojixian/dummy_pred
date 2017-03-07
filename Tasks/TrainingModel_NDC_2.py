@@ -30,11 +30,11 @@ import numpy as np
 import tushare as ts
 import pandas as pd
 
-cache_file = os.path.join(config.CACHE_DIR, 'stock_list_300.csv')
+cache_file = os.path.join(config.CACHE_DIR, 'stock_list_sz50.csv')
 if os.path.isfile(cache_file):
     sample_stock_list = pd.read_csv(cache_file)
 else:
-    sample_stock_list = ts.get_hs300s()
+    sample_stock_list = ts.get_sz50s()
     sample_stock_list.to_csv(cache_file, index=False)
 
 raw_stock_list = sample_stock_list['code'].tolist()
@@ -52,14 +52,14 @@ for code in raw_stock_list:
             stock_list.append("sz" + code)
 
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
-from Models.ModelCNN_NDC_relu import Model_CNN_NDC_relu as Model
+from Models.ModelDNN_NDC import Model_NDC as Model
 
-low, high, categories, step, samples = -5, 5, 3, 1, 2000
+low, high, step, samples = -9, 9, 1, 2000
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
-provider = Provider(start_date, end_date, stock_list)
-model = Model(low, high, categories)
+provider = Provider(start_date, end_date,stock_list)
+model = Model(low, high)
 
 cond = " `{0}` > {1} AND `{0}` < {2} ".format(result_cols[0], low, high)
 
@@ -79,8 +79,8 @@ count = data.shape[0]
 [validation_data, validation_result], \
 [test_data, test_result], \
     = provider.balance_dataset([results, data], low, high, step,
-                               validation_samples_ratio=0.05,
-                               test_samples_ratio=0.05)
+                               validation_samples_ratio=0.01,
+                               test_samples_ratio=0.01)
 
 print("Total data set size: {}\n"
       "Training set size: {}\n"
@@ -89,6 +89,8 @@ print("Total data set size: {}\n"
                                    validation_data.shape[0],
                                    test_data.shape[0]))
 
-model.train([training_data, training_result],
-            [validation_data, validation_result],
+print("training result max:{} min{}".format(np.max(test_data), np.min(test_data)))
+
+model.train([test_data, test_result],
+            [test_data, test_result],
             [test_data, test_result])
