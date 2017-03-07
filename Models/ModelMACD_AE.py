@@ -20,18 +20,18 @@ class ModelMACD:
         encoded = Dense(80, activation='relu', name="encoder_1")(input_data)
         encoded = Dense(40, activation='relu', name="encoder_2")(encoded)
         encoded = Dense(20, activation='relu', name="encoder_3")(encoded)
-        encoder_output = Dense(encoded_dim,name="encoder_output")(encoded)
+        encoder_output = Dense(encoded_dim,name="dense_1")(encoded)
 
-        decoded = Dense(20, activation='relu', name="decoder_input")(encoder_output)
+        decoded = Dense(20, activation='relu', name="decoder_1")(encoder_output)
         decoded = Dense(40, activation='relu', name="decoder_2")(decoded)
         decoded = Dense(80, activation='relu', name="decoder_3")(decoded)
-        decoded = Dense(data_dim, activation='relu', name="decoder_output")(decoded)
+        decoded = Dense(data_dim, activation='relu', name="output")(decoded)
 
         self._model = Model(input=input_data, output=decoded)
 
         decoder_input_data = Input(shape=(encoded_dim,))
         for layer in self._model.layers:
-            if layer.name == 'decoder_input':
+            if layer.name == 'decoder_1':
                 decoder_output = layer(decoder_input_data)
                 break
 
@@ -40,7 +40,7 @@ class ModelMACD:
 
         print("Network output layout")
         for layer in self._model.layers:
-            print(layer.output_shape)
+            print(layer.name, layer.output_shape)
         print("\n\n")
 
         from Common.KerasMetrics import mean_error_rate
