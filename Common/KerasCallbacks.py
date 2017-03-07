@@ -19,7 +19,7 @@ class DataVisualized(keras.callbacks.Callback):
         self.y_data = y_data
         self.value_dropout_count = value_dropout_count
         self.encoder = encoder
-        self.scatter = ax.scatter(x=np.zeros((count, 1)), y=np.zeros((count, 1)), c=y_data, cmap=plt.cm.jet)
+        self.scatter = ax.scatter(x=np.zeros((count, 1)), y=np.zeros((count, 1)), marker='.', c=y_data, cmap=plt.cm.jet)
         plt.colorbar(self.scatter)
         self.epoch_c = 0
         pass

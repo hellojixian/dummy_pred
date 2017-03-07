@@ -2,23 +2,23 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization, Merge, LSTM, GRU, Input
 import numpy as np
 import Common.config as config
-import os
+import os, math
 from Common.KerasCallbacks import DataVisualized, DataTester
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 
 
-class ModelPrice:
+class ModelKDJ:
     def __init__(self):
-        name = "Model_Price"
+        name = "Model_KDJ"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._model_weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
         encoded_dim = 2
-        data_dim = 192
+        data_dim = 144
 
         input_data = Input(shape=(data_dim,))
-        encoded = Dense(150, activation='relu', name="encoder_1")(input_data)
-        encoded = Dense(120, activation='relu', name="encoder_2")(encoded)
+        # encoded = Dense(200, activation='relu', name="encoder_1")(input_data)
+        encoded = Dense(120, activation='relu', name="encoder_2")(input_data)
         encoded = Dense(80, activation='relu', name="encoder_3")(encoded)
         encoded = Dense(40, activation='relu', name="encoder_4")(encoded)
         encoder_output = Dense(encoded_dim, name="encoder_output")(encoded)
@@ -26,7 +26,7 @@ class ModelPrice:
         decoded = Dense(40, activation='relu', name="decoder_1")(encoder_output)
         decoded = Dense(80, activation='relu', name="decoder_2")(decoded)
         decoded = Dense(120, activation='relu', name="decoder_3")(decoded)
-        decoded = Dense(150, activation='relu', name="decoder_4")(decoded)
+        # decoded = Dense(200, activation='relu', name="decoder_4")(decoded)
         decoded = Dense(data_dim, activation='relu', name="decoder_output")(decoded)
 
         self._model = Model(input=input_data, output=decoded)
@@ -56,25 +56,45 @@ class ModelPrice:
         return
 
     def _transform_inputs(self, input):
-        price_vec_in = input[:, :, [0, 1, 2, 3]]
-        price_change_in = input[:, :, [4, 5, 6, 7]]
+
+        kdj_in = input[:, :, [33, 34, 35]]
         input = [
-            price_change_in
+            kdj_in
         ]
         input = np.concatenate(input, axis=2)
         print(input.shape)
-        input = input.reshape(input.shape[0], -1)
 
-        v_max = 30
-        v_min = -30
+        v_max = 1.3
+        v_min = -0.2
+
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))
-        input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
+
+        input = ((input - v_min) / (v_max - v_min)) - 0.5
+        print(input.shape)
+        # input = input.reshape(-1)
+        input = np.tanh(input)
+        input += 2
+        input = input ** 10
+        # y = y.tolist()
+        # y.sort()
+        # import matplotlib.pyplot as plt
+        # x = range(len(y))
+        # print(len(x), len(y))
+        # fig, ax = plt.subplots(figsize=(10, 8))
+        # ax.grid()
+        # ax.scatter(x=x, y=y, cmap=plt.cm.jet, marker='.')
+        # plt.show()
+        # exit(0)
+        input = input.reshape(input.shape[0], -1)
+
+
+
+        # input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
         print("adjusted input range: {} to {}".format(np.min(input), np.max(input)))
         print("transformed input shape: ", input.shape)
-        print("--"*20)
-
-
+        print("--" * 20)
+        # exit(0)
         return input
 
     def train(self, training_set, validation_set, test_set):
@@ -85,13 +105,13 @@ class ModelPrice:
         X_validation = self._transform_inputs(X_validation)
         X_test = self._transform_inputs(X_test)
 
-        reduce_lr = ReduceLROnPlateau(monitor='val_mean_absolute_error',
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                                       factor=0.2,
                                       verbose=1,
                                       patience=5,
                                       min_lr=0.001)
         checkpoint = ModelCheckpoint(self._model_weight_file,
-                                     monitor='val_mean_absolute_error',
+                                     monitor='val_loss',
                                      verbose=1,
                                      save_best_only=True,
                                      save_weights_only=True,

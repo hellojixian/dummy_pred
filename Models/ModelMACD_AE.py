@@ -20,7 +20,7 @@ class ModelMACD:
         encoded = Dense(80, activation='relu', name="encoder_1")(input_data)
         encoded = Dense(40, activation='relu', name="encoder_2")(encoded)
         encoded = Dense(20, activation='relu', name="encoder_3")(encoded)
-        encoder_output = Dense(encoded_dim,name="dense_1")(encoded)
+        encoder_output = Dense(encoded_dim, name="dense_1")(encoded)
 
         decoded = Dense(20, activation='relu', name="decoder_1")(encoder_output)
         decoded = Dense(40, activation='relu', name="decoder_2")(decoded)
@@ -115,8 +115,6 @@ class ModelMACD:
         X_train = self._transform_inputs(X_train)
         X_validation = self._transform_inputs(X_validation)
         X_test = self._transform_inputs(X_test)
-
-
 
         reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                                       factor=0.2,
