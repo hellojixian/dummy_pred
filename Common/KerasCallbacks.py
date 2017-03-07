@@ -6,8 +6,14 @@ import keras
 class DataVisualized(keras.callbacks.Callback):
     def __init__(self, encoder, x_data, y_data, value_dropout_count=0):
         super()
-        fig, ax = plt.subplots()
         count = len(y_data)
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plt.subplots_adjust(hspace=0.001,
+                            wspace=0.01,
+                            left=0.08,
+                            right=1,
+                            top=0.96,
+                            bottom=0.06)
         self.ax = ax
         self.x_data = x_data
         self.y_data = y_data

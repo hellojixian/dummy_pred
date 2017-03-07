@@ -140,6 +140,7 @@ class ModelMACD:
                         nb_epoch=10000,
                         batch_size=256,
                         callbacks=[data_vis, reduce_lr, checkpoint, tester],
+                        validation_data=(X_validation, X_validation),
                         shuffle=True)
 
     def predict(self, data_set):
