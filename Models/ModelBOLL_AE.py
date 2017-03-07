@@ -7,9 +7,9 @@ from Common.KerasCallbacks import DataVisualized, DataTester
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 
 
-class ModelKDJ:
+class ModelBOLL:
     def __init__(self):
-        name = "Model_KDJ"
+        name = "Model_BOLL"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._model_weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
@@ -55,15 +55,15 @@ class ModelKDJ:
 
     def _transform_inputs(self, input):
 
-        kdj_in = input[:, :, [33, 34, 35]]
+        boll_in = input[:, :, [16, 17, 18]]
         input = [
-            kdj_in
+            boll_in
         ]
         input = np.concatenate(input, axis=2)
         print(input.shape)
 
-        v_max = 1.3
-        v_min = -0.2
+        v_max = 2
+        v_min = -2
 
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))
@@ -74,18 +74,7 @@ class ModelKDJ:
         input = np.tanh(input)
         input += 2
         input = input ** 10
-        # y = y.tolist()
-        # y.sort()
-        # import matplotlib.pyplot as plt
-        # x = range(len(y))
-        # print(len(x), len(y))
-        # fig, ax = plt.subplots(figsize=(10, 8))
-        # ax.grid()
-        # ax.scatter(x=x, y=y, cmap=plt.cm.jet, marker='.')
-        # plt.show()
-        # exit(0)
         input = input.reshape(input.shape[0], -1)
-
 
 
         # input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
