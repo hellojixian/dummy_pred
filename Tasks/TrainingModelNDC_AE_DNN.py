@@ -54,11 +54,11 @@ for code in raw_stock_list:
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
 from Models.ModelNDC_AE_DNN import ModelNDC_AE_DNN as Model
 
-low, high, categories, step, samples = -5, 5, 3, 1, 2000
+low, high, categories, step, samples = -9.5, 9.5, 3, 1, 3500
 data_segment = 'today_full'
 result_cols = ['nextday_close']
 
-provider = Provider(start_date, end_date, stock_list)
+provider = Provider(start_date, end_date, [])
 model = Model(low, high, categories)
 
 cond = " `{0}` > {1} AND `{0}` < {2} ".format(result_cols[0], low, high)

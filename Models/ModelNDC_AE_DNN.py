@@ -100,7 +100,8 @@ class ModelNDC_AE_DNN:
 
         input_models = [
             enc_amp, enc_asi, enc_bias, enc_boll, enc_cci,
-            enc_change, enc_count, enc_ema, enc_emv, enc_kdj,
+            enc_change, enc_count,
+            enc_ema, enc_emv, enc_kdj,
             enc_macd, enc_mi, enc_oscv, enc_psy, enc_roc, enc_tr, enc_wvad,
             enc_rsi, enc_mdi
         ]
@@ -191,7 +192,7 @@ class ModelNDC_AE_DNN:
         roc_in = input[:, :, [39, 40]]
         change_in = input[:, :, [41]]
         count_in = input[:, :, [20]]
-        amp_in = input[:, :, [42, 43, 44]]
+        amp_in = input[:, :, [42]]
         mi_in = input[:, :, [48, 49, 50, 51]]
         tr_in = input[:, :, [19]]
         oscv_in = input[:, :, [52]]
@@ -202,9 +203,30 @@ class ModelNDC_AE_DNN:
         emv_in = input[:, :, [70, 71]]
         wvad_in = input[:, :, [72, 73]]
 
+        ema_in = ema_in.reshape(ema_in.shape[0], -1)
+        boll_in = boll_in.reshape(boll_in.shape[0], -1)
+        cci_in = cci_in.reshape(cci_in.shape[0], -1)
+        rsi_in = rsi_in.reshape(rsi_in.shape[0], -1)
+        kdj_in = kdj_in.reshape(kdj_in.shape[0], -1)
+        bias_in = bias_in.reshape(bias_in.shape[0], -1)
+        roc_in = roc_in.reshape(roc_in.shape[0], -1)
+        change_in = change_in.reshape(change_in.shape[0], -1)
+        count_in = count_in.reshape(count_in.shape[0], -1)
+        amp_in = amp_in.reshape(amp_in.shape[0], -1)
+        mi_in = mi_in.reshape(mi_in.shape[0], -1)
+        tr_in = tr_in.reshape(tr_in.shape[0], -1)
+        oscv_in = oscv_in.reshape(oscv_in.shape[0], -1)
+        mdi_in = mdi_in.reshape(mdi_in.shape[0], -1)
+        asi_in = asi_in.reshape(asi_in.shape[0], -1)
+        macd_in = macd_in.reshape(macd_in.shape[0], -1)
+        psy_in = psy_in.reshape(psy_in.shape[0], -1)
+        emv_in = emv_in.reshape(emv_in.shape[0], -1)
+        wvad_in = wvad_in.reshape(wvad_in.shape[0], -1)
+
         input = [
             amp_in, asi_in, bias_in, boll_in, cci_in,
-            change_in, count_in, ema_in, emv_in, kdj_in,
+            change_in, count_in,
+            ema_in, emv_in, kdj_in,
             macd_in, mi_in, oscv_in, psy_in, roc_in, tr_in, wvad_in,
             rsi_in, mdi_in
         ]
