@@ -17,23 +17,23 @@ class ModelPriceVec:
         data_dim = 384
 
         input_data = Input(shape=(data_dim,))
-        encoded = Dense(256, activation='relu', name="encoder_1")(input_data)
-        encoded = Dense(128, activation='relu', name="encoder_2")(encoded)
-        encoded = Dense(80, activation='relu', name="encoder_3")(encoded)
-        encoded = Dense(40, activation='relu', name="encoder_4")(encoded)
-        encoder_output = Dense(encoded_dim, name="encoder_output")(encoded)
+        encoded = Dense(256, activation='relu', name=name+"encoder_1")(input_data)
+        encoded = Dense(128, activation='relu', name=name+"encoder_2")(encoded)
+        encoded = Dense(80, activation='relu', name=name+"encoder_3")(encoded)
+        encoded = Dense(40, activation='relu', name=name+"encoder_4")(encoded)
+        encoder_output = Dense(encoded_dim, name=name+"encoder_output")(encoded)
 
-        decoded = Dense(40, activation='relu', name="decoder_1")(encoder_output)
-        decoded = Dense(80, activation='relu', name="decoder_2")(decoded)
-        decoded = Dense(128, activation='relu', name="decoder_3")(decoded)
-        decoded = Dense(256, activation='relu', name="decoder_4")(decoded)
-        decoded = Dense(data_dim, activation='relu', name="decoder_output")(decoded)
+        decoded = Dense(40, activation='relu', name=name+"decoder_1")(encoder_output)
+        decoded = Dense(80, activation='relu', name=name+"decoder_2")(decoded)
+        decoded = Dense(128, activation='relu', name=name+"decoder_3")(decoded)
+        decoded = Dense(256, activation='relu', name=name+"decoder_4")(decoded)
+        decoded = Dense(data_dim, activation='relu', name=name+"decoder_output")(decoded)
 
         self._model = Model(input=input_data, output=decoded)
 
         decoder_input_data = Input(shape=(encoded_dim,))
         for layer in self._model.layers:
-            if layer.name == 'decoder_1':
+            if layer.name == name+'decoder_1':
                 decoder_output = layer(decoder_input_data)
                 break
 

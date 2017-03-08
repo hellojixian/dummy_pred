@@ -100,10 +100,20 @@ class ModelNDC_AE_DNN:
 
         input_models = [
             enc_amp, enc_asi, enc_bias, enc_boll, enc_cci,
-            enc_change, enc_count,
+            # enc_change, enc_count,
             enc_ema, enc_emv, enc_kdj,
             enc_macd, enc_mi, enc_oscv, enc_psy, enc_roc, enc_tr, enc_wvad,
             enc_rsi, enc_mdi
+        ]
+        # input = [
+        #     amp_in, bias_in, boll_in,
+        #     ema_in, emv_in, kdj_in,
+        #     macd_in, rsi_in
+        # ]
+        input_models = [
+            enc_amp,  enc_bias, enc_boll,
+            enc_ema, enc_emv, enc_kdj,
+            enc_macd
         ]
 
         self._model = Sequential([
@@ -111,30 +121,30 @@ class ModelNDC_AE_DNN:
                   concat_axis=-1,
                   name="dnn_merge_1"),
 
-            Dense(4096,
-                  name="dnn_dense_2_1"),
-            BatchNormalization(),
-            Activation('relu'),
-            Dropout(0.4),
-            Dense(512,
-                  name="dnn_dense_2"),
-            BatchNormalization(),
-            Activation('relu'),
-            Dropout(0.4),
+            # Dense(4096,
+            #       name="dnn_dense_2_1"),
+            # BatchNormalization(),
+            # Activation('relu'),
+            # Dropout(0.4),
+            # Dense(512,
+            #       name="dnn_dense_2"),
+            # BatchNormalization(),
+            # Activation('relu'),
+            # Dropout(0.4),
             Dense(256,
                   name="dnn_dense_3"),
-            Dropout(0.4),
-            BatchNormalization(),
+            Dropout(0.2),
+            # BatchNormalization(),
             Activation('relu'),
             Dense(128,
                   name="dnn_dense_3_2"),
-            Dropout(0.4),
-            BatchNormalization(),
+            Dropout(0.2),
+            # BatchNormalization(),
             Activation('relu'),
             Dense(32,
                   name="dnn_dense_4"),
             Dropout(0.2),
-            BatchNormalization(),
+            # BatchNormalization(),
             Activation('relu'),
 
             Dense(self.result_categores),
@@ -142,8 +152,15 @@ class ModelNDC_AE_DNN:
         ])
 
         print("Network output layout")
+        # i = 0
+        # for m in input_models:
+        #     for l in m.layers:
+        #         l.name = "dnn_" + str(i)
+
         for layer in self._model.layers:
+            # layer.name = "dnn_" + str(i)
             print(layer.name, layer.output_shape)
+            # i += 1
         print("\n\n")
         # exit(0)
 
@@ -225,10 +242,16 @@ class ModelNDC_AE_DNN:
 
         input = [
             amp_in, asi_in, bias_in, boll_in, cci_in,
-            change_in, count_in,
+            # change_in, count_in,
             ema_in, emv_in, kdj_in,
             macd_in, mi_in, oscv_in, psy_in, roc_in, tr_in, wvad_in,
             rsi_in, mdi_in
+        ]
+
+        input = [
+            amp_in, bias_in, boll_in,
+            ema_in, emv_in, kdj_in,
+            macd_in
         ]
 
         return input
@@ -290,7 +313,7 @@ class ModelNDC_AE_DNN:
         print("-" * 30)
 
         callbacks = [
-            EarlyStopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mode='min')
+            EarlyStopping(monitor='val_loss', min_delta=0.01, patience=5, verbose=1, mode='min')
         ]
 
         print('Training ------------')
@@ -300,7 +323,7 @@ class ModelNDC_AE_DNN:
         # while accuracy <= 0.98:
         while loss >= 0.0005:  # 0.02:
             self._model.fit(X_train, y_train,
-                            nb_epoch=2,
+                            nb_epoch=10,
                             batch_size=batch_size,
                             callbacks=callbacks,
                             verbose=1,
