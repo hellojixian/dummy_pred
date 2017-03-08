@@ -37,15 +37,17 @@ input = provider.fetch_dataset(data_segment)
 
 
 # 先不缩放数据 只是观察
-bias_in = input[:, :, [36, 37, 38]]
-input = bias_in
+price_change_in = input[:, :, [4, 5, 6, 7]]
+input = price_change_in
+input = np.nan_to_num(input)
 
 y = input.reshape(-1)
 y.sort()
 
 
-v_max = 5
-v_min = -5
+v_max = 2
+v_min = -2
+
 
 print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
 print("adjusted range limit: {} to {}".format(v_min, v_max))
@@ -64,7 +66,7 @@ c = ((c - -6) / (6 - -6)) - 0.5
 c = np.tanh(c)
 c += 2
 
-
+print("\nscaled input range: {} to {}".format(np.min(y), np.max(y)))
 import matplotlib.pyplot as plt
 x = range(len(y))
 print(len(x), len(y))
@@ -72,6 +74,6 @@ fig, ax = plt.subplots(figsize=(10, 8))
 plt.title('Sample Distribution CCI')
 ax.grid()
 ax.scatter(x=x, y=y, c='b', marker='.')
-ax.scatter(x=x, y=c, c='r', marker='.')
+# ax.scatter(x=x, y=c, c='r', marker='.')
 plt.tight_layout()
 plt.show()

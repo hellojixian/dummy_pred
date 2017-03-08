@@ -7,9 +7,9 @@ from Common.KerasCallbacks import DataVisualized, DataTester
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 
 
-class ModelPrice:
+class ModelPriceChange:
     def __init__(self):
-        name = "Model_Price"
+        name = "Model_PriceChange"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._model_weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
@@ -42,7 +42,7 @@ class ModelPrice:
 
         print("Network output layout")
         for layer in self._model.layers:
-            print(layer.name, layer.output_shape)
+            print(layer.name, layer.output_shape, layer.trainable)
         print("\n\n")
 
         from Common.KerasMetrics import mean_error_rate
@@ -65,15 +65,28 @@ class ModelPrice:
         print(input.shape)
         input = input.reshape(input.shape[0], -1)
 
-        v_max = 30
-        v_min = -30
+        v_max = 2.5
+        v_min = -2.5
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))
-        input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
-        print("adjusted input range: {} to {}".format(np.min(input), np.max(input)))
-        print("transformed input shape: ", input.shape)
-        print("--"*20)
 
+        input = ((input - v_min) / (v_max - v_min)) - 0.5
+        print(input.shape)
+        # input = input.reshape(-1)
+        input = np.tanh(input)
+        input += 2
+        input = input ** 10
+        # y = y.tolist()
+        # y.sort()
+        # import matplotlib.pyplot as plt
+        # x = range(len(y))
+        # print(len(x), len(y))
+        # fig, ax = plt.subplots(figsize=(10, 8))
+        # ax.grid()
+        # ax.scatter(x=x, y=y, cmap=plt.cm.jet, marker='.')
+        # plt.show()
+        # exit(0)
+        input = input.reshape(input.shape[0], -1)
 
         return input
 
