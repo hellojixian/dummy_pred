@@ -127,3 +127,12 @@ class ModelPriceChange:
         X = self._transform_inputs(data_set)
         result = self._model.predict(X, verbose=0)
         return result
+
+    def get_encoder(self):
+        encoder = self.encoder
+        print("Lockdown network output layout")
+        for layer in self._model.layers:
+            layer.trainable = False
+            print(layer.name, layer.output_shape, layer.trainable)
+        print("\n\n")
+        return encoder
