@@ -36,15 +36,21 @@ input = provider.fetch_dataset(data_segment)
 
 # 先不缩放数据 只是观察
 # psy_in = input[:, :, [68, 69]]
-amp_in = input[:, :,  [42]]
+amp_in = input[:, :,  [20]] #vr 22 vol 21
 input = amp_in
 input = np.nan_to_num(input)
 
 y = input.reshape(-1)
 y.sort()
 
-v_max = 2
-v_min = 0.2
+# # vol 21
+# v_max = -1
+# v_min = -4.5
+
+# vol 21
+v_max = 0.5
+v_min = 0
+
 
 print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
 print("adjusted range limit: {} to {}".format(v_min, v_max))
