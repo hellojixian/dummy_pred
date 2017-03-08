@@ -52,7 +52,7 @@ for code in raw_stock_list:
             stock_list.append("sz" + code)
 
 from DataProviders.DailyFullMarket2D import DailyFullMarket2D as Provider
-from Models.ModelBOLL_AE import ModelBOLL as Model
+from Models.ModelCCI_AE import ModelCCI as Model
 
 low, high, step, samples = -9.5, 9.5, 1, 3500
 data_segment = 'today_full'

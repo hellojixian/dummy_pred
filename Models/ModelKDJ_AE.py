@@ -62,8 +62,8 @@ class ModelKDJ:
         input = np.concatenate(input, axis=2)
         print(input.shape)
 
-        v_max = 1.3
-        v_min = -0.2
+        v_max = 1.4  #1.3
+        v_min = -0.3 #-0.2
 
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))

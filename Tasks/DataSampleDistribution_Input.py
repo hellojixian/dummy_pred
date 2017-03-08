@@ -37,36 +37,41 @@ input = provider.fetch_dataset(data_segment)
 
 
 # 先不缩放数据 只是观察
-boll_in = input[:, :, [16, 17, 18]]
-input = boll_in
+cci_in = input[:, :,  [27, 28, 29]]
+input = cci_in
 
 y = input.reshape(-1)
 y.sort()
 
 
-v_max = 2
-v_min = -2
+v_max = 1
+v_min = -1
 
 print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
 print("adjusted range limit: {} to {}".format(v_min, v_max))
 
 
 # 缩放数据测试
+c = y
 input = y
 input = ((input - v_min) / (v_max - v_min)) - 0.5
 input = np.tanh(input)
 input += 2
-# input = input ** 10
 y = input
 
+
+c = ((c - -2) / (2 - -2)) - 0.5
+c = np.tanh(c)
+c += 2
 
 
 import matplotlib.pyplot as plt
 x = range(len(y))
 print(len(x), len(y))
 fig, ax = plt.subplots(figsize=(10, 8))
-plt.title('Sample Distribution BOLL')
+plt.title('Sample Distribution CCI')
 ax.grid()
-ax.scatter(x=x, y=y, cmap=plt.cm.jet, marker='.')
+ax.scatter(x=x, y=y, c='b', marker='.')
+ax.scatter(x=x, y=c, c='r', marker='.')
 plt.tight_layout()
 plt.show()
