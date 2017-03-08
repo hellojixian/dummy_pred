@@ -62,8 +62,8 @@ class ModelBIAS:
         input = np.concatenate(input, axis=2)
         print(input.shape)
 
-        v_max = 5
-        v_min = -5
+        v_max = 6.5
+        v_min = -6.5
 
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))
