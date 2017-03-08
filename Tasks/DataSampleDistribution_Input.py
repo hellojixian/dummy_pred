@@ -36,14 +36,14 @@ input = provider.fetch_dataset(data_segment)
 
 # 先不缩放数据 只是观察
 # psy_in = input[:, :, [68, 69]]
-mi_in = input[:,  :, [52]]
-input = mi_in
+wr_in = input[:, :,  [41]]
+input = wr_in
 input = np.nan_to_num(input)
 
 y = input.reshape(-1)
 y.sort()
 
-v_max = 0.7
+v_max = 1.5
 v_min = -1.5
 
 print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
@@ -56,9 +56,9 @@ input = ((input - v_min) / (v_max - v_min)) - 0.5
 input = np.tanh(input)
 input += 2
 y = input
+
 #
-#
-# c = ((c - -3) / (3 - -3)) - 0.5
+# c = ((c - -5) / (5 - -5)) - 0.5
 # c = np.tanh(c)
 # c += 2
 
