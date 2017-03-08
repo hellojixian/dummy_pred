@@ -36,7 +36,7 @@ class DataVisualized(keras.callbacks.Callback):
 
         if self.epoch_c % 5:
             pass
-        plt.pause(5)
+        plt.pause(0.5)
         pass
 
 class DataTester(keras.callbacks.Callback):

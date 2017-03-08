@@ -37,15 +37,15 @@ input = provider.fetch_dataset(data_segment)
 
 
 # 先不缩放数据 只是观察
-cci_in = input[:, :,  [27, 28, 29]]
-input = cci_in
+bias_in = input[:, :, [36, 37, 38]]
+input = bias_in
 
 y = input.reshape(-1)
 y.sort()
 
 
-v_max = 1
-v_min = -1
+v_max = 5
+v_min = -5
 
 print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
 print("adjusted range limit: {} to {}".format(v_min, v_max))
@@ -60,7 +60,7 @@ input += 2
 y = input
 
 
-c = ((c - -2) / (2 - -2)) - 0.5
+c = ((c - -6) / (6 - -6)) - 0.5
 c = np.tanh(c)
 c += 2
 
