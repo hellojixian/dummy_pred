@@ -7,24 +7,24 @@ from Common.KerasCallbacks import DataVisualized, DataTester
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 
 
-class ModelChange:
+class ModelRSI:
     def __init__(self):
-        name = "Model_Change"
+        name = "Model_RSI"
         self._model_file = os.path.join(config.MODEL_DIR, name + '_model.h5')
         self._model_weight_file = os.path.join(config.MODEL_DIR, name + '_weight.h5')
 
         encoded_dim = 2
-        data_dim = 48
+        data_dim = 144
 
         input_data = Input(shape=(data_dim,))
-        encoded = Dense(140, activation='relu', name="encoder_2")(input_data)
-        encoded = Dense(90, activation='relu', name="encoder_3")(encoded)
+        encoded = Dense(120, activation='relu', name="encoder_2")(input_data)
+        encoded = Dense(80, activation='relu', name="encoder_3")(encoded)
         encoded = Dense(40, activation='relu', name="encoder_4")(encoded)
         encoder_output = Dense(encoded_dim, name="encoder_output")(encoded)
 
         decoded = Dense(40, activation='relu', name="decoder_1")(encoder_output)
-        decoded = Dense(90, activation='relu', name="decoder_2")(decoded)
-        decoded = Dense(140, activation='relu', name="decoder_3")(decoded)
+        decoded = Dense(80, activation='relu', name="decoder_2")(decoded)
+        decoded = Dense(120, activation='relu', name="decoder_3")(decoded)
         decoded = Dense(data_dim, activation='relu', name="decoder_output")(decoded)
 
         self._model = Model(input=input_data, output=decoded)
@@ -55,16 +55,13 @@ class ModelChange:
 
     def _transform_inputs(self, input):
 
-        change_in = input[:, :, [41]]
+        rsi_in = input[:, :, [30, 31, 32]]
         input = [
-            change_in
+            rsi_in
         ]
         input = np.concatenate(input, axis=2)
-        input = np.nan_to_num(input)
-        print(input.shape)
-
-        v_max = 1.5
-        v_min = -1.5
+        v_max = 1
+        v_min = 0
 
         print("\nraw input range: {} to {}".format(np.min(input), np.max(input)))
         print("adjusted range limit: {} to {}".format(v_min, v_max))
@@ -74,20 +71,8 @@ class ModelChange:
         # input = input.reshape(-1)
         input = np.tanh(input)
         input += 2
-        input = input ** 11
-        # y = y.tolist()
-        # y.sort()
-        # import matplotlib.pyplot as plt
-        # x = range(len(y))
-        # print(len(x), len(y))
-        # fig, ax = plt.subplots(figsize=(10, 8))
-        # ax.grid()
-        # ax.scatter(x=x, y=y, cmap=plt.cm.jet, marker='.')
-        # plt.show()
-        # exit(0)
+        input = input ** 10
         input = input.reshape(input.shape[0], -1)
-
-
 
         # input = ((input - v_min) / (v_max - v_min) + 1.5) ** 12
         print("adjusted input range: {} to {}".format(np.min(input), np.max(input)))

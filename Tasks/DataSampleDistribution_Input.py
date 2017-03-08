@@ -36,8 +36,9 @@ input = provider.fetch_dataset(data_segment)
 
 # 先不缩放数据 只是观察
 # psy_in = input[:, :, [68, 69]]
-amp_in = input[:, :,  [20]] #vr 22 vol 21
-input = amp_in
+# amp_in = input[:, :,  [20]] #vr 22 vol 21
+mdi_in = input[:, :,  [57, 58, 59, 60]]
+input = mdi_in
 input = np.nan_to_num(input)
 
 y = input.reshape(-1)
@@ -48,7 +49,7 @@ y.sort()
 # v_min = -4.5
 
 # vol 21
-v_max = 0.5
+v_max = 5
 v_min = 0
 
 
