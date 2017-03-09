@@ -20,15 +20,17 @@ from keras.callbacks import EarlyStopping
 start_date = datetime.date(2016, 1, 1)
 end_date = datetime.date(2016, 12, 30)
 code = 'sz002166'
-col = 'close'
-data_splitter = 0.715
+col = 'ma5'
+data_splitter = 0.8
 
-features = ['close', 'vol', 'count']
-timesteps = 10
-prediction_step = 4
+features = ['close', 'ma5', 'ma15', 'ma25', 'ma40',
+            'ema_5', 'ema_15', 'ema_25', 'ema_40',
+            'vol', 'v_ma5', 'v_ma15', 'v_ma25', 'v_ma40']
+timesteps = 24 # 过去两个小时的走势
+prediction_step = 12 # 未来一小时
 batch_size = 48  # 一天有48个五分钟
 
-model_weight_file = os.path.join(config.MODEL_DIR, 'LSTMResearch_weight.h5')
+model_weight_file = os.path.join(config.MODEL_DIR, 'LSTMResearchMA40_weight.h5')
 ds_cache_file = os.path.join(config.CACHE_DIR, 'LSTMResearchDataset.csv')
 rs_cache_file = os.path.join(config.CACHE_DIR, 'LSTMResearchResult.csv')
 
@@ -45,25 +47,21 @@ else:
     session = sessionmaker()
     session.configure(bind=config.DB_CONN)
     db = session()
+
+    columns_list = ['time'] + features
+    columns_str = '`' + "`,`".join(columns_list) + '`'
     sql = """
-    SELECT
-        `time`,
-        `open`,
-        `high`,
-        `low`,
-        `close`,
-        `vol`,
-        `count`
+    SELECT {3}
     FROM
         feature_extracted_stock_trading_5min
     WHERE
         `code` = '{0}'
             AND `time` > '{1}'
             AND `time` < '{2}' ;
-    """.format(code, start_date, end_date)
+    """.format(code, start_date, end_date,columns_str)
     rs = db.execute(sql)
     df = pd.DataFrame(rs.fetchall())
-    df.columns = ['time', 'open', 'high', 'low', 'close', 'vol', 'count']
+    df.columns = columns_list
     db.close()
 
     # 准备训练数据
@@ -146,7 +144,7 @@ prediction_display = test_y.reshape(-1)
 raw_line = plt.plot(range(result.shape[0]), result.values, color='b')
 
 training_line = plt.plot([sep_pt], [prediction_display[0]],
-                         color='lime', marker="o")
+                         color='lime')
 test_line = plt.plot([sep_pt], [prediction_display[0]],
                      color='r')
 
@@ -163,14 +161,14 @@ class DataVisualized(keras.callbacks.Callback):
         pass
 
     def on_epoch_end(self, epoch, logs=None):
-        self.epoch_c +=1
-        if self.epoch_c % 5:
-            # training_pred = self.model.predict(training_X, batch_size=batch_size)
-            # training_line[0].set_data(np.arange(len(training_pred)), training_pred)
+        if self.epoch_c % 5 == 0:
+            training_pred = self.model.predict(training_X, batch_size=batch_size)
+            training_line[0].set_data(np.arange(len(training_pred)), training_pred)
 
             test_pred = self.model.predict(test_X, batch_size=batch_size)
             test_line[0].set_data(np.arange(sep_pt, sep_pt + len(test_pred)), test_pred)
             plt.pause(0.5)
+        self.epoch_c += 1
         pass
 
 
@@ -189,7 +187,7 @@ checkpoint = ModelCheckpoint(model_weight_file,
                              period=1)
 data_vis = DataVisualized()
 model = Sequential([
-    LSTM(1000,
+    LSTM(100,
          batch_input_shape=(batch_size, timesteps, len(features)),
          return_sequences=False,
          stateful=True,
@@ -204,7 +202,7 @@ model = Sequential([
          dropout_W=0.0,
          dropout_U=0.0,
          name="lstm_1"),
-    Dense(512, name="dense_2"),
+    Dense(256, name="dense_2"),
     Dropout(0.4),
     Dense(128, name="dense_3"),
     Dense(1, name="output")
