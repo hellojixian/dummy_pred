@@ -286,4 +286,4 @@ model.fit(training_X, training_y,
           batch_size=batch_size,
           callbacks=[data_vis, checkpoint, reduce_lr],
           verbose=1,
-          validation_data=(test_X, test_y))
+          validation_data=(validation_X, validation_y))
