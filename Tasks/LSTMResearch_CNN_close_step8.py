@@ -11,7 +11,8 @@ from sqlalchemy.orm import sessionmaker
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout, Convolution2D, BatchNormalization, Merge, LSTM, GRU
+from keras.layers import Dense, Activation, Flatten, Dropout, Convolution1D, Convolution2D, BatchNormalization, Merge, \
+    LSTM, GRU, ConvLSTM2D
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 from keras.optimizers import SGD, RMSprop
 from keras.callbacks import EarlyStopping
@@ -25,14 +26,16 @@ col = 'ma25'
 data_splitter = 0.8
 test_splitter = 0.5
 
-features = ['ma25']
+features = ['open', 'low', 'high', 'close',
+            'ma5', 'ma15', 'ma25', 'ma40',
+            'ema_5', 'ema_15', 'ema_25', 'ema_40',
+            'close_2', 'boll_up', 'boll_md', 'boll_dn']
+timesteps = 48  # 过去两个小时的走势
+prediction_step = 20  #
 
-# features = ['ma25']
-timesteps = 24  # 过去两个小时的走势
-prediction_step = 1  #
-batch_size = 20  # 一天有48个五分钟
+batch_size = 48  # 一天有48个五分钟
 
-model_weight_file = os.path.join(config.MODEL_DIR, 'LSTMResearchNextCloseS8_weight.h5')
+model_weight_file = os.path.join(config.MODEL_DIR, 'CNNLSTMResearchNextCloseS8_weight.h5')
 ds_cache_file = os.path.join(config.CACHE_DIR, 'LSTMResearchDataset-{}-{}-s8.csv'.format(col, code))
 rs_cache_file = os.path.join(config.CACHE_DIR, 'LSTMResearchResult-{}-{}-s8.csv'.format(col, code))
 raw_cache_file = os.path.join(config.CACHE_DIR, 'LSTMResearchRaw-{}-{}-s8.csv'.format(col, code))
@@ -54,8 +57,11 @@ else:
     db = session()
 
     columns_list = ['time'] + features
-    columns_str = "`time`, `ma25` "
-    # columns_str = "`time`,`ma25`"
+    # columns_str = '`' + "`,`".join(columns_list) + '`'
+    columns_str = "`time`, `open`, `low`, `high`, `close`, " \
+                  "`ma5`, `ma15`, `ma25`, `ma40`, " \
+                  "`ema_5`, `ema_15`, `ema_25`, `ema_40`, " \
+                  "`close` as close_2,`boll_up`, `boll_md`, `boll_dn` "
     sql = """
     SELECT {3}
     FROM
@@ -84,7 +90,7 @@ else:
                 dataset[i, t] = rec[features].values
 
         if i < df.shape[0] - prediction_step:
-            next_rec = df.iloc[i  + prediction_step, :]
+            next_rec = df.iloc[i + timesteps+ prediction_step, :]
             result.iloc[i, 0] = next_rec[col]
             result.iloc[i, 1] = next_rec['time']
         i += 1
@@ -100,7 +106,7 @@ else:
     result = result[timesteps:]
 
     # 去尾
-    shift_size = dataset.shape[0] - prediction_step - timesteps
+    shift_size = dataset.shape[0] - prediction_step
     # df = df[:shift_size]
     dataset = dataset[:shift_size]
     result = result[:shift_size]
@@ -113,11 +119,14 @@ else:
     rs_df.to_csv(path_or_buf=rs_cache_file, index=False)
 
     df.to_csv(path_or_buf=raw_cache_file, index=False)
+
 # dataset = dataset[:500]
 # result = result[:500]
 # print(dataset[4:5+8])
 # print(result[4:5])
 # exit()
+
+# dataset = dataset.reshape(dataset.shape[0],1,dataset.shape[1],dataset.shape[2])
 
 print("dataset: {}\t result:{}".format(dataset.shape[0], result.shape[0]))
 total = int(dataset.shape[0] / batch_size) * batch_size
@@ -223,29 +232,47 @@ checkpoint = ModelCheckpoint(model_weight_file,
                              period=1)
 data_vis = DataVisualized()
 model = Sequential([
-    LSTM(30,
-         input_shape=(timesteps, len(features)),
+    Convolution1D(88, 4, border_mode='same',
+                  input_shape=(timesteps, len(features)),
+                  name="conv_1"),
+    BatchNormalization(),
+    Activation('tanh'),
+    Dropout(0.3),
+    Convolution1D(60, 4, border_mode='same',
+                  name="conv_2"),
+    BatchNormalization(),
+    Activation('tanh'),
+    Dropout(0.3),
+    Convolution1D(20, 4, border_mode='same',
+                  name="conv_4"),
+    BatchNormalization(),
+    Activation('tanh'),
+    Dropout(0.3),
+    Convolution1D(8, 4, border_mode='same',
+                  name="conv_5"),
+    BatchNormalization(),
+    Activation('tanh'),
+    Dropout(0.3),
+    LSTM(150,
+         # input_shape=(88, len(features)),
          return_sequences=False,
          stateful=False,
          init='glorot_uniform',
          inner_init='orthogonal',
          forget_bias_init='one',
          activation='tanh',
-         inner_activation='hard_sigmoid',
+         inner_activation='sigmoid',
          W_regularizer=None,
          U_regularizer=None,
          b_regularizer=None,
          dropout_W=0.0,
          dropout_U=0.0,
          name="lstm_1"),
-    #
-    # Dense(256, name="dense_2"),
-    # Activation('tanh', name="act_2"),
-    # Dense(128, name="dense_3"),
-    # Activation('tanh', name="act_3"),
+    Dense(128, name="dense_3"),
+    Activation('tanh', name="act_3"),
     Dense(64, name="dense_4"),
     Activation('tanh', name="act_4"),
-    Dense(1)
+    Dense(1, name="output")
 ])
 
 model.compile(optimizer='adadelta',
