@@ -18,8 +18,8 @@ from keras.callbacks import EarlyStopping
 from Common.KerasMetrics import root_mean_squared_error as rmse
 
 # 参数设置
-start_date = datetime.date(2016, 12, 10)
-end_date = datetime.date(2017, 1, 10)
+start_date = datetime.date(2016, 11, 10)
+end_date = datetime.date(2016, 12, 10)
 code = 'sz002166'
 col = 'ma25'
 data_splitter = 0.8
@@ -28,7 +28,7 @@ test_splitter = 0.5
 features = ['ma25']
 timesteps = 24  # 过去两个小时的走势
 prediction_step = 1  #
-batch_size = 20  # 一天有48个五分钟
+batch_size = 24  # 一天有48个五分钟
 
 model_weight_file = os.path.join(config.MODEL_DIR, 'LSTMResearchNextCloseS8_weight.h5')
 
@@ -76,7 +76,7 @@ ax.set_yticklabels(minor_ticks, minor=True)
 # result
 
 
-raw_line = plt.plot(range(df.shape[0]), df[col].values, color='b', alpha=0.5)
+future_line = plt.plot(range(df.shape[0]), df[col].values, color='b', alpha=0.4)
 past_line = plt.plot([0], [df[col].values[0]], color='b', alpha=1, marker='.')
 
 pred_line = plt.plot([0], [df[col].values[0]], color='r', alpha=1, marker='.')
@@ -138,39 +138,39 @@ for i, row in df.iterrows():
 
     pred_data = None
     # 开始准备要用于预测的数据
-    if sep_pos >= (batch_size + timesteps):
-        batch_dataset = np.zeros((batch_size + timesteps, timesteps, len(features)))
-        df_start_pos = sep_pos - batch_size - timesteps
-        batch_i = 0
-        for time, row_ in df[df_start_pos:sep_pos].iterrows():
-            if batch_i >= timesteps:
-                for t in range(timesteps):
-                    step = timesteps - t
-                    rec_index = df_start_pos + batch_i - step
-                    rec = df.iloc[rec_index, :]
-                    batch_dataset[batch_i, t] = rec[features].values
-                    # 如果超出了 则需要补位
-            batch_i += 1
+    available_data = df[col].values[:sep_pos]
+    if sep_pos >= timesteps:
+        input_data = available_data[(0 - timesteps):].copy()
 
-        # if df_start_pos < timesteps:
-        #     offset = timesteps - df_start_pos - 1
-        # print(batch_dataset[-2:])
-        batch_dataset = batch_dataset[timesteps:]
-        # print(batch_dataset[-2:])
-        # print("--"*30)
-        pred_data = model.predict(batch_dataset, batch_size=batch_size)
 
-        offset = prediction_step + 1
-        print(sep_pos, df_start_pos, offset, pred_data.shape[0], batch_dataset.shape[0])
+        def pred_future(input_data, step=0, results=[]):
+            if step < batch_size:
+                pred_input_data = input_data.reshape(1, timesteps, len(features))
+                pred_next_value = model.predict(pred_input_data, batch_size=1)
+                pred_next_value = pred_next_value[0, 0]
+                results.append(pred_next_value)
 
-        past_pred_line[0].set_data(np.arange(sep_pos - batch_size + offset,
-                                             sep_pos + offset),
+                input_data = np.roll(input_data, -1)
+                input_data[-1:] = pred_next_value + np.random.uniform(-0.01,0.01)
+
+                # print(input_data)
+                step += 1
+                return pred_future(input_data, step, results)
+            else:
+                return results
+
+        input_bak = input_data.copy()
+        np.set_printoptions(threshold=np.inf, linewidth=1000)
+        pred_data = pred_future(input_data)
+        print(input_bak[-10:],pred_data[10:])
+        past_pred_line[0].set_data(np.arange(sep_pos, sep_pos + batch_size),
                                    pred_data)
+        # exit(0)
         # pred_line[0].set_data(np.arange(sep_pos - (timesteps - offset),
         #                                 sep_pos + 1 + prediction_step - (timesteps - offset)),
         #                       pred_data[(batch_size - prediction_step - 1):])
 
-    sep_line[0].set_data(np.repeat(sep_pos, 2), (sep_max, sep_min))
+    sep_line[0].set_data(np.repeat(sep_pos - 1, 2), (sep_max, sep_min))
     label = "batch id: {}\n" \
             "close price: {} " \
             "\n{}".format(sep_pos,
@@ -179,7 +179,7 @@ for i, row in df.iterrows():
     sep_text.set_text(label)
     sep_text.set_position((sep_pos + 20, sep_max - (sep_max - sep_min) * 0.15))
 
-    past_line[0].set_data(np.arange(sep_pos + 1), [df[col].values[:sep_pos + 1]])
+    past_line[0].set_data(np.arange(sep_pos), available_data)
 
     ax.set_xlim(sep_pos - padding_left, sep_pos + padding_right)
     plt.pause(0.1)

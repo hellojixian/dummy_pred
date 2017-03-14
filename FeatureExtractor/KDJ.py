@@ -7,11 +7,14 @@ def calculate(df):
 
     k_list, d_list, j_list = [], [], []
     k, d, j = 50, 50, 50
-    n = 9
+    k_n = 9
+    d_n = 3
+    j_n = 3
+
 
     for i in range(0, df.shape[0]):
-        high = np.max(df.iloc[i - n:i, df.columns.get_loc('high')])
-        low = np.min(df.iloc[i - n:i, df.columns.get_loc('low')])
+        high = np.max(df.iloc[i - k_n:i, df.columns.get_loc('high')])
+        low = np.min(df.iloc[i - k_n:i, df.columns.get_loc('low')])
         close = df.iloc[i, df.columns.get_loc('close')]
 
         if i > n:
