@@ -23,19 +23,20 @@ np.set_printoptions(threshold=np.inf, linewidth=1000)
 
 # 参数设置
 # 对于 5步的 lookback 120 - 150 最好
-# 对于 4步的 lookback 120 - 150 最好
 prediction_step = 5
-lookback_days = 100
-training_size = 200
+lookback_days = 35
+training_size = 500
+validation_size = 50
 
-init_start_pos = 2
+init_start_pos = 19 +1
 zoom_window_size = 15
 
-training_epoch = 50
+training_epoch = 150
 batch_size = 100
 
 model_weight_file = os.path.join(config.MODEL_DIR, 'research_hist_step_{}_weight.h5')
 data_file = os.path.join(config.CACHE_DIR, 'dataset.csv')
+color_act = (255 / 255, 241 / 255, 232 / 255)
 
 
 def create_model(input_dim, prediction_step):
@@ -44,47 +45,49 @@ def create_model(input_dim, prediction_step):
     model = Sequential([
         Dense(200, input_dim=input_dim),
         Activation('relu'),
-        BatchNormalization(),
         Dense(200),
         Activation('relu'),
-        BatchNormalization(),
         Dense(200),
         Activation('relu'),
-        BatchNormalization(),
         Dense(200),
         Activation('relu'),
-        BatchNormalization(),
         Dense(200),
         Activation('relu'),
-        BatchNormalization(),
         Dense(200),
         Activation('relu'),
-        BatchNormalization(),
         Dense(1),
         Activation('linear'),
     ])
 
-    model.compile(optimizer='adadelta',
+    model.compile(optimizer='adadelta',  # 'adadelta' 'adagrad',
                   loss=root_mean_squared_error,
-                  metrics=[max_abs_error, 'mae', 'mse', mean_signed_deviation])
+                  metrics=[  # max_abs_error,
+                      'mae',
+                      # 'mse',
+                      # mean_signed_deviation
+                  ])
 
     if os.path.isfile(file):
-        model.load_weights(file, by_name=True)
+        try:
+            model.load_weights(file, by_name=True)
+        except Exception:
+            pass
 
-    reduce_lr = ReduceLROnPlateau(monitor='loss',
-                                  factor=0.2,
-                                  verbose=1,
-                                  patience=5,
-                                  min_lr=0.001)
+    earlystopping = keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                  min_delta=0.0005,
+                                                  patience=20,
+                                                  verbose=0,
+                                                  mode='min')
+
     checkpoint = ModelCheckpoint(file,
-                                 monitor='loss',
+                                 monitor='val_loss',
                                  verbose=1,
                                  save_best_only=True,
                                  save_weights_only=True,
                                  mode='min',
                                  period=1)
 
-    return {'model': model, 'callbacks': [reduce_lr, checkpoint]}
+    return {'model': model, 'callbacks': [earlystopping, checkpoint]}
 
 
 def init_graph(data):
@@ -105,6 +108,7 @@ def init_graph(data):
              marker='.')
     pred_tr_line = ax1.plot([0], result[0], color='g', alpha=0.8, marker='.')
     ax1.autoscale()
+    text1 = ax1.text(0.05, 0.95, '',family=['monospace'], ha='left', va='top', transform=ax1.transAxes)
 
     # 预测图
     ax2 = fig.add_subplot(gs[0:2, 2:5])
@@ -115,14 +119,15 @@ def init_graph(data):
              scaler.inverse_transform(values[-(zoom_window_size):]), color='b', alpha=0.9, marker='.')
     ax2.plot(range(zoom_window_size - 1, zoom_window_size + len(act_future)),
              list(scaler.inverse_transform(values[-1])) + list(act_future)
-             , color='deepskyblue', alpha=1, marker='.')
-    ax2.set_ylim(
-        scaler.inverse_transform(
-            [np.min(values[-(zoom_window_size):, 0].tolist() + list(scaler.transform(act_future)))]
-        )[0] * 0.97,
-        scaler.inverse_transform(
-            [np.max(values[-(zoom_window_size):, 0].tolist() + list(scaler.transform(act_future)))]
-        )[0] * 1.02)
+             , color='deepskyblue', alpha=1, marker='o')
+    val_min = scaler.inverse_transform(
+        [np.min(values[-(zoom_window_size):, 0].tolist() + list(scaler.transform(act_future)))]
+    )[0] * 0.97
+    val_max = scaler.inverse_transform(
+        [np.max(values[-(zoom_window_size):, 0].tolist() + list(scaler.transform(act_future)))]
+    )[0] * 1.02
+    ax2.set_ylim(val_min, val_max)
+    ax2.plot([zoom_window_size - 1, zoom_window_size - 1], [val_min, val_max], color='black', alpha=0.5, linestyle='--')
 
     # 监控各感知器的拟合程度
     ax_s1 = fig.add_subplot(gs[2, 0])
@@ -161,6 +166,10 @@ def init_graph(data):
     ax_s5.plot(range(zoom_window_size + prediction_step),
                scaler.inverse_transform(result[-(zoom_window_size + prediction_step):]), color='b', alpha=0.9,
                marker='.')
+
+    pr_axs = [ax_s1, ax_s2, ax_s3, ax_s4, ax_s5]
+    for ax in pr_axs:
+        ax.patch.set_facecolor('#DEDEDE')
 
     fitting_step1_line = ax_s1.plot([0],
                                     scaler.inverse_transform(result[-(zoom_window_size + prediction_step)]), color='r',
@@ -207,6 +216,8 @@ def init_graph(data):
 
     return {
         'tr_line': pred_tr_line[0],
+        'hist_fitting_ax': ax1,
+        'hist_fitting_text': text1,
         'fitting_lines': [fitting_step1_line[0],
                           fitting_step2_line[0],
                           fitting_step3_line[0],
@@ -217,6 +228,7 @@ def init_graph(data):
                      pred_step3_line_zoom[0],
                      pred_step4_line_zoom[0],
                      pred_step5_line_zoom[0]],
+        'preceptron_axs': pr_axs
     }
 
 
@@ -293,6 +305,11 @@ def prepare_data(start_pos, peek_future=True):
             )
         test_set[i] = np.vstack(test_set[i]).reshape(-1, lookback_days)
 
+    validation_result = training_result[-validation_size:]
+    validation_set = []
+    for i in range(prediction_step):
+        validation_set.append(training_set[i][-validation_size:])
+
     return {
         'dataset': dataset,
         'test_set': test_set,
@@ -300,8 +317,40 @@ def prepare_data(start_pos, peek_future=True):
         'test_result': test_result,
         'training_result': training_result,
         'training_set': training_set,
+        'validation_result': validation_result,
+        'validation_set': validation_set,
         'scaler': scaler
     }
+
+
+class DataVisualizer(keras.callbacks.Callback):
+    def __init__(self, lines, data, preceptron_id):
+        super()
+        self.lines = lines
+        self.data = data
+        self.preceptron_id = preceptron_id
+        pass
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.lines.get('hist_fitting_text').set_text(
+            "   Epoch: {}/{}\n"
+            "    loss: {} \n"
+            "val_loss: {}".format(
+                epoch + 1,
+                training_epoch,
+                logs['loss'], logs['val_loss']))
+
+        pred_train_y = self.model.predict(self.data.get('training_set')[i])
+        self.lines.get('tr_line').set_data(range(len(pred_train_y)), pred_train_y)
+
+        self.lines.get('fitting_lines')[self.preceptron_id] \
+            .set_data(range(zoom_window_size + prediction_step),
+                      self.data.get('scaler').inverse_transform(
+                          pred_train_y[
+                          -(zoom_window_size + prediction_step):]))
+
+        plt.pause(0.5)
+        pass
 
 
 # create models
@@ -316,49 +365,46 @@ data = prepare_data(init_start_pos, peek_future=True)
 # init graph
 lines = init_graph(data)
 
-# return {
-#     'tr_line': pred_tr_line[0],
-#     'fitting_lines': [fitting_step1_line[0],
-#                       fitting_step2_line[0],
-#                       fitting_step3_line[0],
-#                       fitting_step4_line[0],
-#                       fitting_step5_line[0]],
-#     'pr_lines': [pred_step1_line_zoom[0],
-#                  pred_step2_line_zoom[0],
-#                  pred_step3_line_zoom[0],
-#                  pred_step4_line_zoom[0],
-#                  pred_step5_line_zoom[0]],
-# }
-
 # train models
-for _ in range(100):
-    for i in range(prediction_step):
-        model = models[i].get('model')
-        callbacks = models[i].get('callbacks')
-        model.fit(data.get('training_set')[i], data.get('training_result'),
-                  nb_epoch=training_epoch,
-                  batch_size=batch_size,
-                  callbacks=callbacks,
-                  verbose=2)
-        pred_train_y = model.predict(data.get('training_set')[i])
+for i in range(prediction_step):
+    model = models[i].get('model')
+    lines.get('hist_fitting_ax').set_title("History Fitting - Preceptron #{}".format(i + 1))
+    lines.get('hist_fitting_ax').patch.set_facecolor(color_act)
+    lines.get('preceptron_axs')[i].patch.set_facecolor(color_act)
+    vis = DataVisualizer(lines=lines, data=data, preceptron_id=i)
+    callbacks = [vis] + models[i].get('callbacks')
+    model.fit(data.get('training_set')[i], data.get('training_result'),
+              nb_epoch=training_epoch,
+              batch_size=batch_size,
+              callbacks=callbacks,
+              validation_data=(data.get('validation_set')[i], data.get('validation_result')),
+              shuffle=True,
+              verbose=2)
+    lines.get('hist_fitting_ax').patch.set_facecolor('white')
+    lines.get('preceptron_axs')[i].patch.set_facecolor('white')
 
-        # visualized training result
-        if i == 0:
-            lines.get('tr_line').set_data(range(len(pred_train_y)), pred_train_y)
+    # load best weight for making prediction
+    model.load_weights(model_weight_file.format(i + 1))
 
-        lines.get('fitting_lines')[i].set_data(range(zoom_window_size + prediction_step),
-                                               data.get('scaler').inverse_transform(
-                                                   pred_train_y[-(zoom_window_size + prediction_step):]))
+    pred_train_y = model.predict(data.get('training_set')[i])
+    lines.get('tr_line').set_data(range(len(pred_train_y)), pred_train_y)
+    lines.get('fitting_lines')[i] \
+        .set_data(range(zoom_window_size + prediction_step),
+                  data.get('scaler').inverse_transform(
+                      pred_train_y[
+                      -(zoom_window_size + prediction_step):]))
 
-    for i in range(prediction_step):
-        pred_value = models[i].get('model').predict(data.get('test_set')[i])
-        pred_value = data.get('scaler').inverse_transform(list(data.get('dataset')[-1]) + list(pred_value))
-        lines.get('pr_lines')[i].set_data(range(zoom_window_size - 1, zoom_window_size + len(pred_value) - 1),
-                                          pred_value)
-        print(pred_value)
-        print(i, '-' * 100)
+    pred_train_y = model.predict(data.get('training_set')[i])
+
+    pred_value = models[i].get('model').predict(data.get('test_set')[i])
+    pred_value = data.get('scaler').inverse_transform(list(pred_train_y[-1]) + list(pred_value))
+    lines.get('pr_lines')[i].set_data(range(zoom_window_size - 1, zoom_window_size + len(pred_value) - 1),
+                                      pred_value)
+    print(pred_value)
+    print(i, '-' * 100)
+
     # 打印输出真实数据作比较
-    print(data.get('scaler').inverse_transform(list(data.get('dataset')[-1]) + list(data.get('test_result_act'))))
+    print(data.get('scaler').inverse_transform(list(data.get('dataset')[-1]) + list(data.get('test_result'))))
     print(i, '-' * 100)
 
     plt.pause(0.5)
